@@ -739,4 +739,11 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     print(f"Uruchamianie aplikacji PGB2 Report Sender na porcie {port}...")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print(f"Nasłuchiwanie na 0.0.0.0:{port}")
+    
+    # Uruchomienie harmonogramu
+    scheduler.start()
+    logger.info("Aplikacja uruchomiona, harmonogram zadań aktywny")
+    
+    # Uruchomienie FastAPI
+    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
