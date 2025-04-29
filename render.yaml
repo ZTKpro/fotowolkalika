@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: pgb2-report-sender
+    runtime: python
+    buildCommand: chmod +x ./start.sh
+    startCommand: python main.py
+    plan: free
+    pythonVersion: 3.10.0
+    autoDeploy: true
+    envVars:
+      - key: PGB2_BASE_URL
+        sync: false
+      - key: PGB2_CLIENT_ID
+        sync: false
+      - key: PGB2_CLIENT_SECRET
+        sync: false
+      - key: PGB2_USERNAME
+        sync: false
+      - key: PGB2_PASSWORD
+        sync: false
+      - key: MWE_ID
+        sync: false
+      - key: EXCEL_PATH
+        value: SOGLbazaraportTAURON.xlsx
