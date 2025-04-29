@@ -1,11 +1,11 @@
 #!/bin/bash
 # Skrypt startowy dla aplikacji PGB2 Report Sender na platformie Render
 
-# Instalacja zależności
-pip install -r requirements.txt
-
-# Utworzenie katalogów jeśli nie istnieją
+# Sprawdź i utwórz katalogi jeśli nie istnieją
 mkdir -p templates
 
-# Uruchomienie aplikacji bezpośrednio
-python main.py
+# Instaluj pozostałe zależności
+pip install -r requirements.txt
+
+# Uruchomienie aplikacji z poprawnym adresem hosta
+python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
