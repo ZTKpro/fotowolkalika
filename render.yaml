@@ -9,7 +9,7 @@ services:
     autoDeploy: true
     envVars:
       - key: PORT
-        value: 10000
+        value: 8000
       - key: PGB2_BASE_URL
         sync: false
       - key: PGB2_CLIENT_ID
