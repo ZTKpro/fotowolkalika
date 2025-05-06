@@ -1164,9 +1164,7 @@
               },
               {
                 label: "Zużycie (prognoza)",
-                data: Array(pastDates.length)
-                  .fill(null)
-                  .concat(futureConsumption),
+                data: createConnectedData(pastConsumption, futureConsumption),
                 borderColor: colors.consumption,
                 backgroundColor: "rgba(40, 66, 177, 0.1)",
                 borderDash: [5, 5],
@@ -1185,9 +1183,7 @@
               },
               {
                 label: "Produkcja PV (prognoza)",
-                data: Array(pastDates.length)
-                  .fill(null)
-                  .concat(futureProduction),
+                data: createConnectedData(pastProduction, futureProduction),
                 borderColor: colors.production,
                 backgroundColor: "rgba(16, 217, 222, 0.1)",
                 borderDash: [5, 5],
@@ -1275,7 +1271,7 @@
               },
               {
                 label: "Bilans energii (prognoza)",
-                data: Array(pastDates.length).fill(null).concat(futureBalance),
+                data: createConnectedData(pastBalance, futureBalance),
                 borderColor: colors.balance,
                 borderDash: [5, 5],
                 tension: 0.4,
@@ -1354,7 +1350,7 @@
               },
               {
                 label: "PPLAN (prognoza)",
-                data: Array(pastDates.length).fill(null).concat(futurePplan),
+                data: createConnectedData(pastPplan, futurePplan),
                 borderColor: colors.pplan,
                 backgroundColor: "rgba(16, 217, 222, 0.1)",
                 borderDash: [5, 5],
@@ -1373,7 +1369,7 @@
               },
               {
                 label: "PAUTO (prognoza)",
-                data: Array(pastDates.length).fill(null).concat(futurePauto),
+                data: createConnectedData(pastPauto, futurePauto),
                 borderColor: colors.pauto,
                 backgroundColor: "rgba(117, 16, 247, 0.1)",
                 borderDash: [5, 5],
@@ -1416,31 +1412,18 @@
         });
       }
 
-      // Update chart based on period selection
-      function updateChart(chartType, period) {
-        if (!chartData || !chartData[period]) {
-          console.error("Chart data not available for period:", period);
-          return;
+      // Helper function to create connected data between past and future
+      function createConnectedData(pastData, futureData) {
+        // Create array with nulls for past dates except for the last entry
+        let result = Array(pastData.length).fill(null);
+        
+        // If we have past data, add the last past value to connect with future data
+        if (pastData.length > 0) {
+          result[pastData.length - 1] = pastData[pastData.length - 1];
         }
-
-        currentPeriod = period;
-
-        // Show loading indicator
-        showLoading(chartType);
-
-        // Add slight delay to show the loading animation
-        setTimeout(() => {
-          if (chartType === "consumption-production") {
-            createConsumptionProductionChart(period);
-          } else if (chartType === "balance") {
-            createBalanceChart(period);
-          } else if (chartType === "pplan-pauto") {
-            createPplanPautoChart(period);
-          }
-
-          // Hide loading indicator
-          hideLoading(chartType);
-        }, 500);
+        
+        // Concat future data
+        return result.concat(futureData);
       }
 
       // Helper function to split data into past and future
