@@ -1024,14 +1024,14 @@
     </div>
 
     <script>
-      // Fix the JSON parsing with proper string formatting
+      // Declare chartData variable before using it
       let chartData;
+      let currentPeriod = "year";
+
+      // Initialize chart data with proper JSON handling
       try {
-        // More robust JSON parsing - Using a custom handling approach
-        let rawChartData = "{{ chart_data | safe }}";
-        // Clean up potential issues in the JSON string
-        rawChartData = rawChartData.replace(/\\'/g, "'").replace(/\\"/g, '"');
-        chartData = JSON.parse(rawChartData);
+        const decodedData = `{{ chart_data }}`.replace(/&#34;/g, '"');
+        chartData = JSON.parse(decodedData);
       } catch (e) {
         console.error("Error parsing chart data:", e);
         // Fallback to empty data structure
@@ -1057,8 +1057,6 @@
         };
       }
 
-      let currentPeriod = "month";
-
       // Chart instances
       let consumptionProductionChart = null;
       let balanceChart = null;
@@ -1075,11 +1073,11 @@
 
       // Initialize charts when page loads
       document.addEventListener("DOMContentLoaded", function () {
-        initializeCharts("month");
+        initializeCharts("year");
 
         // Set active filters
         document
-          .querySelectorAll('.chart-filter[data-period="month"]')
+          .querySelectorAll('.chart-filter[data-period="year"]')
           .forEach((btn) => {
             btn.classList.add("active");
           });
