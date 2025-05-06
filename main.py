@@ -4,11 +4,12 @@ import json
 import logging
 import pandas as pd
 import requests
+import shutil
 from datetime import datetime, timedelta
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -42,7 +43,7 @@ app = FastAPI(title="PGB2 Report Sender", description="Aplikacja do automatyczne
 templates = Jinja2Templates(directory="templates")
 
 # Plik z danymi Excel
-EXCEL_PATH = os.getenv("EXCEL_PATH", "SOGLbazaraportTAURON.xlsx")
+EXCEL_PATH = os.getenv("EXCEL_PATH", "SOGL-baza-raport-TAURON.xlsx")
 
 # Historia wysłanych raportów
 sent_reports = []
@@ -717,6 +718,10 @@ scheduler.add_job(
     replace_existing=True
 )
 
+# Modele danych do obsługi endpointów
+class ExcelDataUpdate(BaseModel):
+    data: List[Dict[str, Any]]
+
 @app.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     """Główny endpoint - strona główna"""
@@ -847,6 +852,168 @@ async def get_chart_data(period: str = "month"):
         error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "api"})
         raise HTTPException(status_code=500, detail=str(e))
 
+# Endpoint do wgrywania nowego pliku Excel
+@app.post("/api/upload-excel")
+async def upload_excel_file(file: UploadFile = File(...), replace: bool = Form(True)):
+    """
+    Endpoint do wgrywania nowego pliku Excel
+    
+    Parameters:
+    file (UploadFile): Plik Excel do wgrania
+    replace (bool): Czy zastąpić istniejący plik (domyślnie True)
+    
+    Returns:
+    dict: Status operacji i ewentualny komunikat
+    """
+    global EXCEL_PATH  
+    
+    try:
+        # Sprawdzenie rozszerzenia pliku
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return {"status": "error", "message": "Nieprawidłowy format pliku. Akceptowane są tylko pliki .xlsx lub .xls"}
+        
+        # Ustalenie ścieżki docelowej
+        file_path = EXCEL_PATH
+        temp_file_path = f"temp_{file.filename}"
+        
+        # Zapisanie pliku tymczasowo
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Próba wczytania pliku, aby sprawdzić jego poprawność
+        try:
+            temp_processor = ExcelProcessor(excel_path=temp_file_path)
+            if not temp_processor.load_data():
+                # Usunięcie pliku tymczasowego
+                os.remove(temp_file_path)
+                return {"status": "error", "message": "Nieprawidłowy format pliku Excel lub brak wymaganych kolumn"}
+            
+            # Sprawdzenie struktury pliku
+            required_columns = ['DATA', 'Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)', 'Nadwyżki (PAUTO)']
+            missing_columns = [col for col in required_columns if col not in temp_processor.df.columns]
+            
+            if missing_columns:
+                # Usunięcie pliku tymczasowego
+                os.remove(temp_file_path)
+                return {"status": "error", "message": f"Brak wymaganych kolumn: {', '.join(missing_columns)}"}
+            
+        except Exception as e:
+            # Usunięcie pliku tymczasowego
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+            logger.error(f"Błąd podczas weryfikacji pliku Excel: {str(e)}")
+            return {"status": "error", "message": f"Błąd podczas weryfikacji pliku: {str(e)}"}
+        
+        # Jeśli zastępujemy plik
+        if replace:
+            # Zrób kopię zapasową istniejącego pliku
+            if os.path.exists(file_path):
+                backup_path = f"{file_path}.bak.{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                shutil.copy2(file_path, backup_path)
+                logger.info(f"Utworzono kopię zapasową pliku: {backup_path}")
+            
+            # Przenieś plik tymczasowy na docelową ścieżkę
+            shutil.move(temp_file_path, file_path)
+        else:
+            # Użyj nowej nazwy pliku
+            new_file_path = f"{os.path.splitext(file_path)[0]}_{datetime.now().strftime('%Y%m%d%H%M%S')}{os.path.splitext(file_path)[1]}"
+            shutil.move(temp_file_path, new_file_path)
+            
+            # Aktualizacja ścieżki w zmiennych środowiskowych
+            os.environ["EXCEL_PATH"] = new_file_path
+            EXCEL_PATH = new_file_path
+        
+        logger.info(f"Plik Excel został pomyślnie wgrany: {file_path}")
+        return {"status": "success", "message": "Plik Excel został pomyślnie wgrany"}
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas wgrywania pliku Excel: {str(e)}")
+        error_logs.append({"timestamp": datetime.now().isoformat(), "message": f"Błąd podczas wgrywania pliku Excel: {str(e)}", "type": "api"})
+        
+        # Usunięcie pliku tymczasowego w przypadku błędu
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+            
+        return {"status": "error", "message": f"Błąd podczas wgrywania pliku: {str(e)}"}
+
+# Endpoint do aktualizacji danych Excel
+@app.post("/api/update-excel-data")
+async def update_excel_data(data_update: ExcelDataUpdate, background_tasks: BackgroundTasks):
+    """
+    Endpoint do aktualizacji danych w pliku Excel
+    
+    Parameters:
+    data_update (ExcelDataUpdate): Zaktualizowane dane
+    background_tasks (BackgroundTasks): Zadania do wykonania w tle
+    
+    Returns:
+    dict: Status operacji i ewentualny komunikat
+    """
+    try:
+        # Wczytanie istniejącego pliku Excel
+        processor = ExcelProcessor()
+        if not processor.load_data():
+            return {"status": "error", "message": "Nie udało się wczytać pliku Excel"}
+        
+        # Tworzenie kopii zapasowej
+        backup_path = f"{EXCEL_PATH}.bak.{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        shutil.copy2(EXCEL_PATH, backup_path)
+        logger.info(f"Utworzono kopię zapasową przed aktualizacją danych: {backup_path}")
+        
+        # Konwersja przesłanych danych na DataFrame
+        updated_df = pd.DataFrame(data_update.data)
+        
+        # Zachowanie typów danych i formatów
+        # Sprawdzenie, czy kolumna DATA jest w formacie datetime
+        if 'DATA' in updated_df.columns:
+            # Próba konwersji na datetime, jeśli to string
+            if not pd.api.types.is_datetime64_any_dtype(updated_df['DATA']):
+                try:
+                    updated_df['DATA'] = pd.to_datetime(updated_df['DATA'])
+                except Exception as e:
+                    logger.warning(f"Nie udało się przekonwertować kolumny DATA na format datetime: {str(e)}")
+        
+        # Zapisanie zaktualizowanych danych do pliku Excel
+        try:
+            updated_df.to_excel(EXCEL_PATH, index=False)
+            logger.info(f"Pomyślnie zaktualizowano dane w pliku Excel")
+            
+            # Resetowanie przetworzonych danych
+            processed_data["last_processed_date"] = datetime.now().isoformat()
+            processed_data["processed_rows"] = []
+            
+            # Zapisanie zaktualizowanych danych przetworzonych
+            with open(PROCESSED_DATA_PATH, 'w') as f:
+                json.dump(processed_data, f, indent=2)
+            
+            # Wyzwolenie ponownego przetworzenia pliku w tle
+            background_tasks.add_task(regenerate_processed_data)
+            
+            return {"status": "success", "message": "Dane zostały pomyślnie zaktualizowane"}
+        except Exception as e:
+            logger.error(f"Błąd podczas zapisywania zaktualizowanych danych: {str(e)}")
+            return {"status": "error", "message": f"Błąd podczas zapisywania danych: {str(e)}"}
+            
+    except Exception as e:
+        logger.error(f"Błąd podczas aktualizacji danych Excel: {str(e)}")
+        error_logs.append({"timestamp": datetime.now().isoformat(), "message": f"Błąd podczas aktualizacji danych Excel: {str(e)}", "type": "api"})
+        return {"status": "error", "message": f"Błąd podczas aktualizacji danych: {str(e)}"}
+
+# Funkcja ponownego przetwarzania danych po aktualizacji
+def regenerate_processed_data():
+    """Funkcja regenerująca przetworzone dane po aktualizacji Excel"""
+    try:
+        processor = ExcelProcessor()
+        if processor.load_data():
+            # Pobranie danych prognozy
+            forecast_data = processor.get_forecast_data()
+            
+            # Generowanie XML (bez wysyłania)
+            processor.generate_xml_for_mwe_short(forecast_data)
+            
+            logger.info("Pomyślnie zregenerowano przetworzone dane po aktualizacji Excel")
+    except Exception as e:
+        logger.error(f"Błąd podczas regeneracji przetworzonych danych: {str(e)}")
 
 # Podczas startu aplikacji
 @app.on_event("startup")

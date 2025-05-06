@@ -518,6 +518,136 @@
         margin-bottom: 1rem;
       }
 
+      /* Style dla edytowalnych komórek */
+      .editable-cell {
+        background-color: rgba(255, 255, 200, 0.2);
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+        position: relative;
+        cursor: text;
+      }
+
+      .editable-cell:hover {
+        background-color: rgba(255, 255, 200, 0.5);
+        box-shadow: 0 0 5px rgba(40, 66, 177, 0.15);
+      }
+
+      .editable-cell:focus {
+        background-color: rgba(255, 255, 200, 0.8);
+        outline: 2px solid var(--primary);
+        box-shadow: 0 0 8px rgba(40, 66, 177, 0.3);
+      }
+
+      .editable-cell::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 0 8px 8px;
+        border-color: transparent transparent rgba(40, 66, 177, 0.3) transparent;
+      }
+
+      /* Style dla tabeli z danymi Excel */
+      #excelDataTable {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      #excelDataTable thead th {
+        background: linear-gradient(90deg, rgba(40, 66, 177, 0.05) 0%, rgba(117, 16, 247, 0.05) 100%);
+        padding: 1rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      #excelDataTable tbody td {
+        padding: 0.75rem 1rem;
+        transition: background-color 0.2s ease;
+      }
+
+      #excelDataTable tbody tr:hover td {
+        background-color: rgba(16, 217, 222, 0.05);
+      }
+
+      /* Animacja dla przycisku zapisz */
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+      }
+
+      #saveExcelChanges {
+        animation: pulse 2s infinite;
+      }
+
+      /* Style dla alertów */
+      #excelStatusAlert {
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      /* Styl dla form wgrywania pliku */
+      #uploadExcelForm {
+        border-radius: 10px;
+        padding: 1.5rem;
+        background-color: rgba(40, 66, 177, 0.02);
+        border: 1px dashed rgba(40, 66, 177, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      #uploadExcelForm:hover {
+        background-color: rgba(40, 66, 177, 0.05);
+        border-color: rgba(40, 66, 177, 0.3);
+      }
+
+      /* Styl dla pola wyboru pliku */
+      #excelFile {
+        padding: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      #excelFile:hover {
+        background-color: rgba(16, 217, 222, 0.05);
+      }
+
+      /* Styl dla modalowego okna */
+      .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .modal-header {
+        background: linear-gradient(90deg, rgba(40, 66, 177, 0.05) 0%, rgba(117, 16, 247, 0.05) 100%);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+      }
+
+      .modal-footer {
+        background-color: rgba(248, 249, 250, 0.5);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 1.5rem;
+      }
+
       /* Responsive adjustments */
       @media (max-width: 768px) {
         .container {
@@ -557,6 +687,19 @@
         .chart-filter {
           padding: 0.4rem 0.8rem;
           font-size: 0.8rem;
+        }
+        
+        .editable-cell {
+          padding: 0.3rem;
+        }
+        
+        #excelDataTable {
+          font-size: 0.9rem;
+        }
+        
+        #excelDataTable thead th,
+        #excelDataTable tbody td {
+          padding: 0.5rem;
         }
       }
     </style>
@@ -943,42 +1086,48 @@
                   </div>
                 </div>
 
-                <div
-                  class="tab-pane fade"
-                  id="data"
-                  role="tabpanel"
-                  aria-labelledby="data-tab"
-                >
-                  <h4 class="mb-4">Przetworzone dane</h4>
-                  <p class="text-muted mb-4">
-                    Ostatnia aktualizacja: {{ processed_data.last_processed_date
-                    }}
-                  </p>
+                <!-- Zakładka Dane Excel -->
+                <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
+                  <div class="row mb-4">
+                    <div class="col-md-6">
+                      <h4 class="mb-3">Przetworzone dane</h4>
+                      <p class="text-muted">
+                        Ostatnia aktualizacja: {{ processed_data.last_processed_date }}
+                      </p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                      <!-- Przycisk otwierający modal do wgrywania pliku -->
+                      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadExcelModal">
+                        <i class="bi bi-upload"></i> Wgraj nowy plik Excel
+                      </button>
+                      <!-- Przycisk zapisujący zmiany -->
+                      <button id="saveExcelChanges" class="btn btn-success ms-2" style="display: none;">
+                        <i class="bi bi-save"></i> Zapisz zmiany
+                      </button>
+                    </div>
+                  </div>
 
+                  <!-- Alert na informacje o statusie operacji -->
+                  <div id="excelStatusAlert" class="alert" style="display: none;"></div>
+
+                  <!-- Tabela z danymi Excel -->
                   <div class="table-responsive">
-                    <table class="table table-striped table-hover">
+                    <table id="excelDataTable" class="table table-striped table-hover">
                       <thead>
-                        <tr>
-                          <th>Data</th>
-                          <th>PPLAN</th>
-                          <th>PAUTO</th>
+                        <tr id="excelTableHeader">
+                          <!-- Nagłówki będą generowane dynamicznie -->
                         </tr>
                       </thead>
-                      <tbody>
-                        {% for row in processed_data.processed_rows %}
-                        <tr>
-                          <td>{{ row.date }}</td>
-                          <td>{{ row.pplan }}</td>
-                          <td>{{ row.pauto }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                          <td colspan="3" class="text-center">Brak danych</td>
-                        </tr>
-                        {% endfor %}
+                      <tbody id="excelTableBody">
+                        <!-- Dane będą generowane dynamicznie -->
                       </tbody>
                     </table>
                   </div>
+
+                  <!-- Przycisk włączający/wyłączający tryb edycji -->
+                  <button id="toggleEditMode" class="btn btn-outline-primary mt-3">
+                    <i class="bi bi-pencil"></i> Włącz tryb edycji
+                  </button>
                 </div>
 
                 <div
@@ -1018,6 +1167,43 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal do wgrywania pliku Excel -->
+    <div class="modal fade" id="uploadExcelModal" tabindex="-1" aria-labelledby="uploadExcelModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadExcelModalLabel">Wgraj nowy plik Excel</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="uploadExcelForm" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="excelFile" class="form-label">Wybierz plik Excel</label>
+                <input type="file" class="form-control" id="excelFile" name="file" accept=".xlsx,.xls">
+                <div class="form-text">Akceptowane formaty: .xlsx, .xls</div>
+              </div>
+              <div class="mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="replaceExisting" name="replace" checked>
+                  <label class="form-check-label" for="replaceExisting">
+                    Zastąp istniejący plik
+                  </label>
+                </div>
+              </div>
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill"></i> Uwaga: Wgranie nowego pliku może wpłynąć na przyszłe raporty.
+                Upewnij się, że plik ma poprawną strukturę zgodną z dokumentacją systemu.
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+            <button type="button" class="btn btn-primary" id="submitExcelUpload">Wgraj plik</button>
           </div>
         </div>
       </div>
@@ -1513,6 +1699,57 @@
         };
       }
 
+      // Function to update a chart with new data
+      function updateChart(chartType, period) {
+        currentPeriod = period;
+        showLoading(chartType);
+
+        // Fetch updated data from server if needed
+        fetchUpdatedData(period)
+          .then(() => {
+            switch (chartType) {
+              case "consumption-production":
+                createConsumptionProductionChart(period);
+                break;
+              case "balance":
+                createBalanceChart(period);
+                break;
+              case "pplan-pauto":
+                createPplanPautoChart(period);
+                break;
+            }
+            hideLoading(chartType);
+          })
+          .catch((error) => {
+            console.error(`Error updating ${chartType} chart:`, error);
+            hideLoading(chartType);
+          });
+      }
+
+      // Function to fetch updated data from server
+      function fetchUpdatedData(period) {
+        return new Promise((resolve, reject) => {
+          // If we already have data for this period, just use it
+          if (chartData && chartData[period]) {
+            resolve(chartData[period]);
+            return;
+          }
+
+          // Otherwise, fetch from server
+          fetch(`/api/chart-data?period=${period}`)
+            .then((response) => response.json())
+            .then((result) => {
+              if (result.status === "success") {
+                chartData[period] = result.data;
+                resolve(result.data);
+              } else {
+                reject(new Error(result.message));
+              }
+            })
+            .catch(reject);
+        });
+      }
+
       // Functions to show and hide loading indicators
       function showLoading(chartType) {
         document.getElementById(`${chartType}-loading`).classList.add("active");
@@ -1592,6 +1829,317 @@
       setInterval(function () {
         refreshChartData();
       }, 5 * 60 * 1000);
+
+      // Zmienne globalne do przechowywania danych Excel
+      let excelData = [];
+      let isEditMode = false;
+      let originalData = [];
+
+      // Po załadowaniu DOM
+      document.addEventListener('DOMContentLoaded', function() {
+        // Załaduj dane Excel
+        loadExcelData();
+        
+        // Obsługa przycisku przełączania trybu edycji
+        document.getElementById('toggleEditMode').addEventListener('click', toggleEditMode);
+        
+        // Obsługa zapisywania zmian
+        document.getElementById('saveExcelChanges').addEventListener('click', saveExcelChanges);
+        
+        // Obsługa wgrywania pliku Excel
+        document.getElementById('submitExcelUpload').addEventListener('click', uploadExcelFile);
+      });
+
+      // Funkcja ładująca dane Excel z API
+      function loadExcelData() {
+        fetch('/api/excel-data')
+          .then(response => response.json())
+          .then(result => {
+            if (result.status === 'success') {
+              excelData = result.data;
+              originalData = JSON.parse(JSON.stringify(result.data)); // Kopia głęboka
+              renderExcelTable(excelData);
+            } else {
+              showAlert('danger', 'Błąd podczas ładowania danych: ' + result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Błąd podczas ładowania danych Excel:', error);
+            showAlert('danger', 'Błąd podczas ładowania danych Excel');
+          });
+      }
+
+      // Funkcja renderująca tabelę z danymi Excel
+      function renderExcelTable(data) {
+        if (!data || data.length === 0) {
+          document.getElementById('excelTableBody').innerHTML = '<tr><td colspan="100%" class="text-center">Brak danych</td></tr>';
+          return;
+        }
+        
+        // Generowanie nagłówków
+        const headers = Object.keys(data[0]);
+        const headerRow = document.getElementById('excelTableHeader');
+        headerRow.innerHTML = '';
+        
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header;
+          headerRow.appendChild(th);
+        });
+        
+        // Generowanie wierszy danych
+        const tableBody = document.getElementById('excelTableBody');
+        tableBody.innerHTML = '';
+        
+        data.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          tr.dataset.rowIndex = rowIndex;
+          
+          headers.forEach(header => {
+            const td = document.createElement('td');
+            td.dataset.field = header;
+            
+            // W trybie edycji, niektóre komórki są edytowalne
+            if (isEditMode && isEditableField(header)) {
+              td.contentEditable = true;
+              td.classList.add('editable-cell');
+            }
+            
+            // Formatowanie daty jeśli to kolumna DATA
+            if (header === 'DATA' && row[header]) {
+              // Sprawdzenie czy to obiekt daty czy string
+              if (typeof row[header] === 'string' && row[header].includes('T')) {
+                // Format ISO - konwersja na przyjazny format
+                const date = new Date(row[header]);
+                td.textContent = date.toLocaleString();
+              } else {
+                td.textContent = row[header];
+              }
+            } else {
+              td.textContent = row[header] !== null ? row[header] : '';
+            }
+            
+            tr.appendChild(td);
+          });
+          
+          tableBody.appendChild(tr);
+        });
+      }
+
+      // Funkcja określająca, które pola mogą być edytowane
+      function isEditableField(fieldName) {
+        // Kolumny, które NIE mogą być edytowane
+        const nonEditableFields = ['DATA', 'id', '_id'];
+        return !nonEditableFields.includes(fieldName);
+      }
+
+      // Funkcja przełączająca tryb edycji
+      function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const button = document.getElementById('toggleEditMode');
+        const saveButton = document.getElementById('saveExcelChanges');
+        
+        if (isEditMode) {
+          button.innerHTML = '<i class="bi bi-x-circle"></i> Wyłącz tryb edycji';
+          button.classList.replace('btn-outline-primary', 'btn-outline-danger');
+          saveButton.style.display = 'inline-block';
+        } else {
+          button.innerHTML = '<i class="bi bi-pencil"></i> Włącz tryb edycji';
+          button.classList.replace('btn-outline-danger', 'btn-outline-primary');
+          saveButton.style.display = 'none';
+          
+          // Pytanie o powrót do oryginalnych danych przy wyjściu z trybu edycji
+          if (hasDataChanged()) {
+            if (confirm('Masz niezapisane zmiany. Czy chcesz je odrzucić?')) {
+              loadExcelData(); // Przywróć oryginalne dane
+            } else {
+              isEditMode = true; // Pozostań w trybie edycji
+              button.innerHTML = '<i class="bi bi-x-circle"></i> Wyłącz tryb edycji';
+              button.classList.replace('btn-outline-primary', 'btn-outline-danger');
+              saveButton.style.display = 'inline-block';
+              return;
+            }
+          }
+        }
+        
+        // Renderuj tabelę ponownie z nowym trybem
+        renderExcelTable(excelData);
+      }
+
+      // Funkcja sprawdzająca, czy dane zostały zmienione
+      function hasDataChanged() {
+        const cells = document.querySelectorAll('.editable-cell');
+        for (const cell of cells) {
+          const rowIndex = cell.parentElement.dataset.rowIndex;
+          const fieldName = cell.dataset.field;
+          const originalValue = originalData[rowIndex][fieldName];
+          const currentValue = cell.textContent;
+          
+          // Konwertuj wartości do porównania
+          const origVal = originalValue !== null ? originalValue.toString() : '';
+          const currVal = currentValue !== null ? currentValue.toString() : '';
+          
+          if (origVal !== currVal) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Funkcja zbierająca zmiany z tabeli
+      function collectChangesFromTable() {
+        // Zbierz wszystkie zmiany z edytowalnych komórek
+        const changedData = JSON.parse(JSON.stringify(excelData)); // Kopia głęboka
+        
+        document.querySelectorAll('.editable-cell').forEach(cell => {
+          const rowIndex = parseInt(cell.parentElement.dataset.rowIndex);
+          const fieldName = cell.dataset.field;
+          const newValue = cell.textContent.trim();
+          
+          // Konwersja typu - zakładamy, że liczby powinny być liczbami, nie stringami
+          if (!isNaN(newValue) && newValue !== '') {
+            changedData[rowIndex][fieldName] = parseFloat(newValue);
+          } else {
+            changedData[rowIndex][fieldName] = newValue === '' ? null : newValue;
+          }
+        });
+        
+        return changedData;
+      }
+
+      // Funkcja zapisująca zmiany w danych Excel
+      function saveExcelChanges() {
+        const changedData = collectChangesFromTable();
+        
+        // Pokaż potwierdzenie
+        if (confirm('Czy na pewno chcesz zapisać zmiany? Ta operacja nie może być cofnięta.')) {
+          // Wyślij dane do API
+          fetch('/api/update-excel-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              data: changedData
+            }),
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.status === 'success') {
+              showAlert('success', 'Dane zostały pomyślnie zapisane');
+              
+              // Aktualizuj lokalną kopię danych
+              excelData = changedData;
+              originalData = JSON.parse(JSON.stringify(changedData));
+              
+              // Wyłącz tryb edycji
+              isEditMode = false;
+              const button = document.getElementById('toggleEditMode');
+              button.innerHTML = '<i class="bi bi-pencil"></i> Włącz tryb edycji';
+              button.classList.replace('btn-outline-danger', 'btn-outline-primary');
+              document.getElementById('saveExcelChanges').style.display = 'none';
+              
+              // Odśwież widok tabeli
+              renderExcelTable(excelData);
+            } else {
+              showAlert('danger', 'Błąd zapisywania danych: ' + result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Błąd podczas zapisywania danych:', error);
+            showAlert('danger', 'Błąd podczas zapisywania danych');
+          });
+        }
+      }
+
+      // Funkcja wgrywająca nowy plik Excel
+      function uploadExcelFile() {
+        const fileInput = document.getElementById('excelFile');
+        const replaceExisting = document.getElementById('replaceExisting').checked;
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+          showAlert('warning', 'Nie wybrano pliku', 'uploadExcelModal');
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        
+        // Weryfikacja typu pliku
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+          showAlert('danger', 'Nieprawidłowy format pliku. Akceptowane są tylko pliki .xlsx lub .xls', 'uploadExcelModal');
+          return;
+        }
+        
+        // Tworzenie FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('replace', replaceExisting);
+        
+        // Wyświetl informację o ładowaniu
+        document.getElementById('submitExcelUpload').disabled = true;
+        document.getElementById('submitExcelUpload').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wgrywanie...';
+        
+        // Wysyłanie pliku do API
+        fetch('/api/upload-excel', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => response.json())
+        .then(result => {
+          document.getElementById('submitExcelUpload').disabled = false;
+          document.getElementById('submitExcelUpload').innerHTML = 'Wgraj plik';
+          
+          if (result.status === 'success') {
+            // Zamknij modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('uploadExcelModal'));
+            modal.hide();
+            
+            // Pokaż powiadomienie
+            showAlert('success', 'Plik został pomyślnie wgrany');
+            
+            // Odśwież dane
+            loadExcelData();
+          } else {
+            showAlert('danger', 'Błąd wgrywania pliku: ' + result.message, 'uploadExcelModal');
+          }
+        })
+        .catch(error => {
+          console.error('Błąd podczas wgrywania pliku:', error);
+          document.getElementById('submitExcelUpload').disabled = false;
+          document.getElementById('submitExcelUpload').innerHTML = 'Wgraj plik';
+          showAlert('danger', 'Błąd podczas wgrywania pliku', 'uploadExcelModal');
+        });
+      }
+
+      // Funkcja wyświetlająca alert z informacją
+      function showAlert(type, message, containerId = null) {
+        let alertContainer;
+        
+        if (containerId) {
+          // Jeśli podano konkretny kontener (np. wewnątrz modala)
+          alertContainer = document.querySelector(`#${containerId} .alert`);
+          if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.className = 'alert mt-3';
+            document.querySelector(`#${containerId} .modal-body`).appendChild(alertContainer);
+          }
+        } else {
+          // Domyślny kontener na alerty
+          alertContainer = document.getElementById('excelStatusAlert');
+        }
+        
+        // Ustaw typ alertu
+        alertContainer.className = `alert alert-${type}`;
+        alertContainer.innerHTML = message;
+        alertContainer.style.display = 'block';
+        
+        // Automatyczne ukrywanie alertu po czasie (jeśli nie jest w modalu)
+        if (!containerId) {
+          setTimeout(() => {
+            alertContainer.style.display = 'none';
+          }, 5000);
+        }
+      }
     </script>
   </body>
 </html>
