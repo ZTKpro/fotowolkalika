@@ -537,8 +537,8 @@ def prepare_chart_data(df, past_days=7, future_days=9):
         
     except Exception as e:
         logger.error(f"Error preparing chart data: {e}")
-        return default_datas
-
+        return default_data  # Fixed: was default_datas
+    
 def generate_month_data(df, today):
     """Helper function to generate month data with error handling"""
     try:

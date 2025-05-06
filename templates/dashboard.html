@@ -1048,8 +1048,11 @@
       // Fix the JSON parsing with proper string formatting
       let chartData;
       try {
-        // Fix: Remove the extra quotes at the beginning
-        chartData = JSON.parse("{{ chart_data | safe }}");
+        // More robust JSON parsing - Using a custom handling approach
+        let rawChartData = "{{ chart_data | safe }}";
+        // Clean up potential issues in the JSON string
+        rawChartData = rawChartData.replace(/\\'/g, "'").replace(/\\"/g, '"');
+        chartData = JSON.parse(rawChartData);
       } catch (e) {
         console.error("Error parsing chart data:", e);
         // Fallback to empty data structure
