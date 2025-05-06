@@ -549,9 +549,13 @@ scheduler.add_job(
     replace_existing=True
 )
 
+@app.get("/", response_class=HTMLResponse)
+async def landing_page(request: Request):
+    """Główny endpoint - strona główna"""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # Endpoint główny - dashboard
-@app.get("/", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     """Główny endpoint - dashboard z statystykami i wykresami"""
     try:

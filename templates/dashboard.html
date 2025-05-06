@@ -5,63 +5,489 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGB2 Report Sender - Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
+        :root {
+            --primary-dark: #0e1e40;
+            --primary: #2842b1;
+            --secondary: #5068e2;
+            --accent: #7510F7;
+            --teal: #10d9de;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         body {
-            padding-top: 20px;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 0;
+            position: relative;
+            overflow-x: hidden;
         }
-        .chart-container {
-            margin-bottom: 30px;
-        }
-        .data-table {
-            margin-top: 20px;
-        }
-        .log-entry {
-            margin-bottom: 5px;
-            padding: 5px;
-            border-radius: 4px;
-        }
-        .log-entry.error {
-            background-color: #ffebee;
-        }
-        .log-entry.info {
-            background-color: #e3f2fd;
-        }
-        .log-entry.warning {
-            background-color: #fff8e1;
-        }
-        .stats-card {
+        
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
+            overflow: hidden;
+            z-index: 0;
         }
-        .refresh-btn {
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-size: 1440px 100px;
+            animation: wave-animation 12s linear infinite;
+            opacity: 0.1;
+        }
+        
+        .wave:nth-child(1) {
+            bottom: 0;
+            opacity: 0.1;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%2310d9de" fill-opacity="0.3" d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,197.3C672,224,768,224,864,192C960,160,1056,96,1152,74.7C1248,53,1344,75,1392,85.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        }
+        
+        .wave:nth-child(2) {
+            bottom: 10px;
+            opacity: 0.05;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%232842b1" fill-opacity="0.3" d="M0,64L48,96C96,128,192,192,288,213.3C384,235,480,213,576,186.7C672,160,768,128,864,128C960,128,1056,160,1152,170.7C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            animation: wave-animation 8s linear infinite;
+        }
+        
+        .wave:nth-child(3) {
+            bottom: 20px;
+            opacity: 0.02;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%237510F7" fill-opacity="0.3" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            animation: wave-animation 10s linear infinite;
+        }
+        
+        @keyframes wave-animation {
+            0% {
+                background-position-x: 0;
+            }
+            100% {
+                background-position-x: 1440px;
+            }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            padding-top: 2rem;
+        }
+        
+        header {
+            margin-bottom: 2rem;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-text {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-left: 1rem;
+        }
+        
+        .header-subtitle {
+            color: #666;
+            font-weight: 400;
+        }
+        
+        .btn {
+            border-radius: 50px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border: none;
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: white;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            height: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            border: none;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-text {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        
+        .text-success {
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .text-danger {
+            background: linear-gradient(90deg, #dc3545 0%, #f86a6a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 500;
+        }
+        
+        .bg-success {
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .bg-danger {
+            background: linear-gradient(90deg, #dc3545 0%, #f86a6a 100%);
+        }
+        
+        .bg-warning {
+            background: linear-gradient(90deg, #ffc107 0%, #ffb300 100%);
+        }
+        
+        .card {
+            border-radius: 15px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1rem 1.5rem;
+        }
+        
+        .nav-tabs {
+            border: none;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            margin-right: 0.5rem;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--teal) 0%, var(--primary) 50%, var(--accent) 100%);
+        }
+        
+        .chart-container h4 {
+            color: var(--primary-dark);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+        
+        /* Chart info */
+        .chart-info {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: rgba(16, 217, 222, 0.05);
+            border-radius: 8px;
             margin-bottom: 20px;
         }
+        
+        .chart-info i {
+            color: var(--teal);
+            font-size: 18px;
+            margin-right: 12px;
+        }
+        
+        .chart-info-text {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Manual legend */
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 6px;
+        }
+        
+        /* Chart filters */
+        .chart-filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .chart-filter {
+            border: none;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+        
+        .chart-filter:hover {
+            background: rgba(40, 66, 177, 0.1);
+        }
+        
+        .chart-filter.active {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+        }
+        
+        .table {
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background: rgba(40, 66, 177, 0.05);
+            border: none;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+        
+        .table tbody td {
+            border-color: rgba(0, 0, 0, 0.05);
+            vertical-align: middle;
+        }
+        
+        .log-entry {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            transition: var(--transition);
+        }
+        
+        .log-entry:hover {
+            transform: translateX(5px);
+        }
+        
+        .log-entry.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+        }
+        
+        .log-entry.info {
+            background-color: rgba(40, 66, 177, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .log-entry.warning {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+        }
+        
         .report-card {
-            margin-bottom: 10px;
-            border-left: 4px solid #4caf50;
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            border-left: 5px solid #4caf50;
         }
+        
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
         .report-card.failed {
-            border-left-color: #f44336;
+            border-left-color: #dc3545;
         }
+        
         .report-card.pending {
-            border-left-color: #ff9800;
+            border-left-color: #ffc107;
+        }
+        
+        .report-card .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-card .card-subtitle {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding-top: 1rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .stats-card {
+                margin-bottom: 1rem;
+            }
+            
+            .card-text {
+                font-size: 1.5rem;
+            }
+            
+            .logo-text {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
     <div class="container">
-        <header class="mb-4">
+        <header>
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1>PGB2 Report Sender - Dashboard</h1>
-                    <p class="text-muted">System automatycznego wysyłania raportów do PGB2</p>
+                    <div class="logo-container">
+                        <svg width="50" height="50" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#10d9de" />
+                                    <stop offset="50%" style="stop-color:#2842b1" />
+                                    <stop offset="100%" style="stop-color:#7510F7" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M10,50 Q50,20 80,40 T150,30 T210,10" stroke="url(#logoGradient)" stroke-width="8" fill="transparent" stroke-linecap="round" />
+                            <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
+                            <text x="225" y="22" fill="white" font-family="Arial" font-weight="bold" font-size="18">PGB2</text>
+                        </svg>
+                        <h1 class="logo-text">PGB2 Report Sender</h1>
+                    </div>
+                    <p class="header-subtitle">System automatycznego wysyłania raportów do PGB2</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <button id="refreshBtn" class="btn btn-outline-primary refresh-btn">
+                    <button id="refreshBtn" class="btn btn-outline-primary me-2">
                         <i class="bi bi-arrow-clockwise"></i> Odśwież dane
                     </button>
                     <button id="triggerReportBtn" class="btn btn-success">
-                        <i class="bi bi-send"></i> Wyślij raport teraz
+                        <i class="bi bi-send"></i> Wyślij raport
                     </button>
                 </div>
             </div>
@@ -69,45 +495,37 @@
 
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Łącznie raportów</h5>
-                        <h2 class="card-text">{{ stats.total_reports }}</h2>
-                    </div>
+                <div class="stats-card">
+                    <h5 class="card-title">Łącznie raportów</h5>
+                    <h2 class="card-text">{{ stats.total_reports }}</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Sukces</h5>
-                        <h2 class="card-text text-success">{{ stats.success_count }}</h2>
-                    </div>
+                <div class="stats-card">
+                    <h5 class="card-title">Sukces</h5>
+                    <h2 class="card-text text-success">{{ stats.success_count }}</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Błędy</h5>
-                        <h2 class="card-text text-danger">{{ stats.error_count }}</h2>
-                    </div>
+                <div class="stats-card">
+                    <h5 class="card-title">Błędy</h5>
+                    <h2 class="card-text text-danger">{{ stats.error_count }}</h2>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Ostatni raport</h5>
-                        <p class="card-text">{{ stats.last_report }}</p>
-                        <p class="card-text">
-                            Status: 
-                            {% if stats.last_status == "SUCCESSFULLY_PROCESSED" %}
-                                <span class="badge bg-success">Sukces</span>
-                            {% elif stats.last_status == "FAILED" %}
-                                <span class="badge bg-danger">Błąd</span>
-                            {% else %}
-                                <span class="badge bg-warning">{{ stats.last_status }}</span>
-                            {% endif %}
-                        </p>
-                    </div>
+                <div class="stats-card">
+                    <h5 class="card-title">Ostatni raport</h5>
+                    <p class="card-text" style="font-size: 1rem;">{{ stats.last_report }}</p>
+                    <p class="card-text" style="font-size: 1rem;">
+                        Status: 
+                        {% if stats.last_status == "SUCCESSFULLY_PROCESSED" %}
+                            <span class="badge bg-success">Sukces</span>
+                        {% elif stats.last_status == "FAILED" %}
+                            <span class="badge bg-danger">Błąd</span>
+                        {% else %}
+                            <span class="badge bg-warning">{{ stats.last_status }}</span>
+                        {% endif %}
+                    </p>
                 </div>
             </div>
         </div>
@@ -135,23 +553,91 @@
                         <div class="tab-content">
                             <div class="tab-pane fade show active" id="charts" role="tabpanel" aria-labelledby="charts-tab">
                                 <div class="chart-container">
-                                    <h4>Zużycie i Produkcja PV</h4>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4>Zużycie i Produkcja PV</h4>
+                                        <div class="chart-filters">
+                                            <button class="chart-filter">Dzień</button>
+                                            <button class="chart-filter active">Tydzień</button>
+                                            <button class="chart-filter">Miesiąc</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="chart-info mb-3">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <span class="chart-info-text">Porównanie zużycia i produkcji energii</span>
+                                    </div>
+                                    
+                                    <div class="chart-legend">
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #2842b1;"></div>
+                                            <span>Zużycie energii</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #10d9de;"></div>
+                                            <span>Produkcja PV</span>
+                                        </div>
+                                    </div>
+                                    
                                     {{ consumption_production_chart|safe }}
                                 </div>
                                 
                                 <div class="chart-container">
-                                    <h4>Bilans energii</h4>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4>Bilans energii</h4>
+                                        <div class="chart-filters">
+                                            <button class="chart-filter">Dzień</button>
+                                            <button class="chart-filter active">Tydzień</button>
+                                            <button class="chart-filter">Miesiąc</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="chart-info mb-3">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <span class="chart-info-text">Bilans energii: różnica między produkcją a zużyciem</span>
+                                    </div>
+                                    
+                                    <div class="chart-legend">
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #7510F7;"></div>
+                                            <span>Bilans energii</span>
+                                        </div>
+                                    </div>
+                                    
                                     {{ balance_chart|safe }}
                                 </div>
                                 
                                 <div class="chart-container">
-                                    <h4>PPLAN i PAUTO</h4>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4>PPLAN i PAUTO</h4>
+                                        <div class="chart-filters">
+                                            <button class="chart-filter">Dzień</button>
+                                            <button class="chart-filter active">Tydzień</button>
+                                            <button class="chart-filter">Miesiąc</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="chart-info mb-3">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <span class="chart-info-text">Wartości raportowane do PGB2</span>
+                                    </div>
+                                    
+                                    <div class="chart-legend">
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #10d9de;"></div>
+                                            <span>PPLAN</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #7510F7;"></div>
+                                            <span>PAUTO</span>
+                                        </div>
+                                    </div>
+                                    
                                     {{ pplan_pauto_chart|safe }}
                                 </div>
                             </div>
                             
                             <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
-                                <h4>Ostatnie logi systemu</h4>
+                                <h4 class="mb-4">Ostatnie logi systemu</h4>
                                 <div class="logs-container">
                                     {% for log in logs|reverse %}
                                         <div class="log-entry {% if log.type == 'error' %}error{% elif log.type == 'warning' %}warning{% else %}info{% endif %}">
@@ -164,8 +650,8 @@
                             </div>
                             
                             <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
-                                <h4>Przetworzone dane</h4>
-                                <p>Ostatnia aktualizacja: {{ processed_data.last_processed_date }}</p>
+                                <h4 class="mb-4">Przetworzone dane</h4>
+                                <p class="text-muted mb-4">Ostatnia aktualizacja: {{ processed_data.last_processed_date }}</p>
                                 
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover">
@@ -194,25 +680,23 @@
                             </div>
                             
                             <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
-                                <h4>Historia wysłanych raportów</h4>
+                                <h4 class="mb-4">Historia wysłanych raportów</h4>
                                 <div class="reports-container">
                                     {% for report in sent_reports|reverse %}
-                                        <div class="card report-card {% if report.status == 'FAILED' %}failed{% elif report.status == 'SUCCESSFULLY_PROCESSED' %}success{% else %}pending{% endif %}">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Raport {{ report.uuid }}</h5>
-                                                <h6 class="card-subtitle mb-2 text-muted">{{ report.timestamp }}</h6>
-                                                <p class="card-text">
-                                                    Typ: {{ report.type }}<br>
-                                                    Status: 
-                                                    {% if report.status == "SUCCESSFULLY_PROCESSED" %}
-                                                        <span class="badge bg-success">Sukces</span>
-                                                    {% elif report.status == "FAILED" %}
-                                                        <span class="badge bg-danger">Błąd</span>
-                                                    {% else %}
-                                                        <span class="badge bg-warning">{{ report.status }}</span>
-                                                    {% endif %}
-                                                </p>
-                                            </div>
+                                        <div class="report-card {% if report.status == 'FAILED' %}failed{% elif report.status == 'SUCCESSFULLY_PROCESSED' %}success{% else %}pending{% endif %}">
+                                            <h5 class="card-title">Raport {{ report.uuid }}</h5>
+                                            <h6 class="card-subtitle mb-2 text-muted">{{ report.timestamp }}</h6>
+                                            <p>
+                                                Typ: {{ report.type }}<br>
+                                                Status: 
+                                                {% if report.status == "SUCCESSFULLY_PROCESSED" %}
+                                                    <span class="badge bg-success">Sukces</span>
+                                                {% elif report.status == "FAILED" %}
+                                                    <span class="badge bg-danger">Błąd</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">{{ report.status }}</span>
+                                                {% endif %}
+                                            </p>
                                         </div>
                                     {% else %}
                                         <p>Brak wysłanych raportów</p>
@@ -248,6 +732,28 @@
                     alert('Wystąpił błąd podczas wysyłania raportu');
                 });
             }
+        });
+
+        // Chart filter functionality
+        document.querySelectorAll('.chart-filters').forEach(filterGroup => {
+            const buttons = filterGroup.querySelectorAll('.chart-filter');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons in this group
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        // Toggle grid visibility on charts - będzie zaimplementowane po rozwiązaniu problemów z wykresami
+        document.querySelectorAll('.toggle-checkbox').forEach((checkbox) => {
+            checkbox.addEventListener('change', function() {
+                // Funkcjonalność przełączania siatki zostanie dodana później
+            });
         });
 
         // Automatyczne odświeżanie co 5 minut

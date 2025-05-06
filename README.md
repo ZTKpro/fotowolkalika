@@ -153,19 +153,3 @@ Aby dostosować aplikację do innych typów raportów:
 2. Rozszerz funkcję `send_daily_report()` o nowe typy raportów
 3. Dodaj nowe zakładki w dashboardzie w pliku `templates/dashboard.html`
 
-Hej!
-Do skonfigurowania systemu raportowania PGB2 potrzebuję od Ciebie kilku rzeczy:
-
-Dostępy do API PGB2:
-
-adres serwera
-ID klienta i sekret
-login i hasło
-
-
-Identyfikator MWE (ten długi numer z podkreślnikiem)
-Plik Excel SOGLbazaraportTAURON.xlsx z danymi do raportów
-Info czy konto ma uprawnienia "USER_API" w systemie
-
-Jak tylko je dostanę, skonfiguruję system, który będzie automatycznie wysyłał raporty codziennie rano. Daj znać gdybyś miał pytania!
-Dzięki!
