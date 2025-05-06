@@ -436,15 +436,6 @@ def prepare_chart_data(df, past_days=7, future_days=9):
     
     # Create default data structure
     default_data = {
-        'week': {
-            'dates': [],
-            'consumption': [],
-            'production': [],
-            'balance': [],
-            'pplan': [],
-            'pauto': [],
-            'is_future': []
-        },
         'month': {
             'dates': [],
             'consumption': [],
@@ -514,23 +505,13 @@ def prepare_chart_data(df, past_days=7, future_days=9):
         if len(is_future) < max_length:
             is_future.extend([False] * (max_length - len(is_future)))
         
-        # Prepare data for week view
-        week_data = {
-            'dates': dates,
-            'consumption': consumption,
-            'production': production,
-            'balance': balance,
-            'pplan': pplan,
-            'pauto': pauto,
-            'is_future': is_future
-        }
+      
         
         # Generate month and year data (simplified for this example)
         month_data = generate_month_data(filtered_df, today)
         year_data = generate_year_data(filtered_df, today)
         
         return {
-            'week': week_data,
             'month': month_data,
             'year': year_data
         }
@@ -839,12 +820,12 @@ async def get_excel_data():
 
 # Nowy endpoint do pobierania danych wykresów
 @app.get("/api/chart-data")
-async def get_chart_data(period: str = "week"):
+async def get_chart_data(period: str = "month"):
     """
     Endpoint zwracający dane wykresów w formacie JSON
     
     Parameters:
-    period (str): Okres czasu - 'week', 'month' lub 'year'
+    period (str): Okres czasu - 'month' lub 'year'
     
     Returns:
     dict: Dane wykresów
@@ -857,7 +838,7 @@ async def get_chart_data(period: str = "week"):
             # Przygotowanie danych do wykresów
             if 'DATA' in df.columns:
                 chart_data = prepare_chart_data(df)
-                return {"status": "success", "data": chart_data.get(period, chart_data['week'])}
+                return {"status": "success", "data": chart_data.get(period, chart_data['month'])}
         
         return {"status": "error", "message": "Nie udało się wczytać danych z pliku Excel"}
     except Exception as e:

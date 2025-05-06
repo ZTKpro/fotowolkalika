@@ -752,13 +752,6 @@
                       <h4>Zużycie i Produkcja PV</h4>
                       <div class="chart-filters">
                         <button
-                          class="chart-filter active"
-                          data-period="week"
-                          data-chart="consumption-production"
-                        >
-                          Tydzień
-                        </button>
-                        <button
                           class="chart-filter"
                           data-period="month"
                           data-chart="consumption-production"
@@ -822,13 +815,6 @@
                       <h4>Bilans energii</h4>
                       <div class="chart-filters">
                         <button
-                          class="chart-filter active"
-                          data-period="week"
-                          data-chart="balance"
-                        >
-                          Tydzień
-                        </button>
-                        <button
                           class="chart-filter"
                           data-period="month"
                           data-chart="balance"
@@ -881,13 +867,6 @@
                     >
                       <h4>PPLAN i PAUTO</h4>
                       <div class="chart-filters">
-                        <button
-                          class="chart-filter active"
-                          data-period="week"
-                          data-chart="pplan-pauto"
-                        >
-                          Tydzień
-                        </button>
                         <button
                           class="chart-filter"
                           data-period="month"
@@ -1057,15 +1036,6 @@
         console.error("Error parsing chart data:", e);
         // Fallback to empty data structure
         chartData = {
-          week: {
-            dates: [],
-            consumption: [],
-            production: [],
-            balance: [],
-            pplan: [],
-            pauto: [],
-            is_future: [],
-          },
           month: {
             dates: [],
             consumption: [],
@@ -1087,7 +1057,7 @@
         };
       }
 
-      let currentPeriod = "week";
+      let currentPeriod = "month";
 
       // Chart instances
       let consumptionProductionChart = null;
@@ -1105,12 +1075,11 @@
 
       // Initialize charts when page loads
       document.addEventListener("DOMContentLoaded", function () {
-        // Initialize all charts with week data
-        initializeCharts("week");
+        initializeCharts("month");
 
         // Set active filters
         document
-          .querySelectorAll('.chart-filter[data-period="week"]')
+          .querySelectorAll('.chart-filter[data-period="month"]')
           .forEach((btn) => {
             btn.classList.add("active");
           });
