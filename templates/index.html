@@ -1,1131 +1,1346 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PowerWiseApp.ai - Inteligentne zarządzanie energią</title>
     <style>
-        :root {
-            --primary-dark: #0e1e40;
-            --primary: #2842b1;
-            --secondary: #5068e2;
-            --accent: #7510F7;
-            --teal: #10d9de;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --transition: all 0.3s ease;
+      :root {
+        --primary-dark: #0e1e40;
+        --primary: #2842b1;
+        --secondary: #5068e2;
+        --accent: #7510f7;
+        --teal: #10d9de;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --transition: all 0.3s ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background-color: var(--light);
+        color: var(--dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      header {
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        z-index: 100;
+        background-color: rgba(248, 249, 250, 0.9);
+        backdrop-filter: blur(10px);
+      }
+
+      .logo {
+        height: 50px;
+        display: flex;
+        align-items: center;
+      }
+
+      .logo-text {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-left: 0.5rem;
+      }
+
+      .logo-accent {
+        color: var(--accent);
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+      }
+
+      .nav-link {
+        text-decoration: none;
+        color: var(--dark);
+        font-weight: 500;
+        font-size: 1.1rem;
+        position: relative;
+        padding: 0.25rem 0;
+        transition: var(--transition);
+      }
+
+      .nav-link:hover {
+        color: var(--primary);
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        width: 0;
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background-color: var(--accent);
+        transition: var(--transition);
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .cta-button {
+        background: linear-gradient(
+          90deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        font-size: 1rem;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        position: relative;
+      }
+
+      .hero-content {
+        max-width: 1200px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        z-index: 1;
+        padding-top: 4rem;
+      }
+
+      .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(
+          90deg,
+          var(--primary-dark) 0%,
+          var(--accent) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-subtitle {
+        font-size: 1.5rem;
+        color: var(--dark);
+        margin-bottom: 2rem;
+        max-width: 800px;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 3rem;
+      }
+
+      .secondary-button {
+        background: white;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        font-size: 1rem;
+      }
+
+      .secondary-button:hover {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Section Common Styles */
+      .section {
+        padding: 6rem 2rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .section-container {
+        max-width: 1200px;
+        width: 100%;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-align: center;
+        color: var(--primary-dark);
+      }
+
+      .section-subtitle {
+        font-size: 1.2rem;
+        color: #666;
+        margin-bottom: 3rem;
+        text-align: center;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Features */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        width: 100%;
+        margin-top: 2rem;
+      }
+
+      .feature-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
+        color: var(--accent);
+        margin-bottom: 1.5rem;
+      }
+
+      .feature-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--primary-dark);
+      }
+
+      .feature-description {
+        color: #666;
+        line-height: 1.6;
+      }
+
+      /* About Section */
+      .about-content {
+        display: flex;
+        gap: 4rem;
+        align-items: center;
+        margin-top: 2rem;
+      }
+
+      .about-image {
+        flex: 1;
+        position: relative;
+        min-height: 400px;
+      }
+
+      .about-image-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          var(--teal) 0%,
+          var(--primary) 100%
+        );
+        border-radius: 20px;
+        opacity: 0.1;
+      }
+
+      .about-image-main {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 400px;
+      }
+
+      .about-text {
+        flex: 1;
+      }
+
+      .about-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--primary-dark);
+      }
+
+      .about-description {
+        color: #666;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+      }
+
+      .about-points {
+        margin-top: 2rem;
+      }
+
+      .about-point {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .about-point-icon {
+        font-size: 1.5rem;
+        color: var(--primary);
+        margin-right: 1rem;
+      }
+
+      .about-point-text {
+        flex: 1;
+      }
+
+      .about-point-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--primary-dark);
+      }
+
+      /* Dashboard Demo Section */
+      .dashboard-demo {
+        position: relative;
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+      }
+
+      .dashboard-header {
+        background: linear-gradient(
+          90deg,
+          var(--primary-dark) 0%,
+          var(--primary) 100%
+        );
+        padding: 1.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .dashboard-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .dashboard-body {
+        padding: 2rem;
+        background: white;
+      }
+
+      .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: var(--light);
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      .stat-title {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+      }
+
+      .stat-change {
+        font-size: 0.9rem;
+        color: #28a745;
+        display: flex;
+        align-items: center;
+        margin-top: 0.5rem;
+      }
+
+      .dashboard-chart {
+        background: var(--light);
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        min-height: 300px;
+        position: relative;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+
+      .chart-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+      }
+
+      .chart-filters {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .chart-filter {
+        border: none;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: #666;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .chart-filter.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      .chart-area {
+        width: 100%;
+        height: 250px;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1000 250" xmlns="http://www.w3.org/2000/svg"><path d="M0,250 L0,100 C50,80 100,130 150,120 C200,110 250,60 300,70 C350,80 400,120 450,100 C500,80 550,40 600,30 C650,20 700,50 750,70 C800,90 850,130 900,120 C950,110 1000,70 1000,50 L1000,250 Z" fill="url(%23chartGradient)" opacity="0.5" /><path d="M0,100 C50,80 100,130 150,120 C200,110 250,60 300,70 C350,80 400,120 450,100 C500,80 550,40 600,30 C650,20 700,50 750,70 C800,90 850,130 900,120 C950,110 1000,70 1000,50" fill="none" stroke="url(%23chartStroke)" stroke-width="3" /><defs><linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%232842b1;stop-opacity:0.2" /><stop offset="100%" style="stop-color:%232842b1;stop-opacity:0" /></linearGradient><linearGradient id="chartStroke" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:%2310d9de" /><stop offset="100%" style="stop-color:%237510F7" /></linearGradient></defs></svg>');
+        background-size: contain;
+        background-repeat: no-repeat;
+      }
+
+      /* Contact Section */
+      .contact-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 4rem;
+        margin-top: 3rem;
+      }
+
+      .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .contact-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .contact-icon {
+        font-size: 1.5rem;
+        color: var(--primary);
+        padding: 0.5rem;
+        background: rgba(40, 66, 177, 0.1);
+        border-radius: 50%;
+        width: 3rem;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .contact-text {
+        flex: 1;
+      }
+
+      .contact-label {
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .contact-value {
+        color: #666;
+        line-height: 1.6;
+      }
+
+      .contact-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--primary-dark);
+      }
+
+      .form-input,
+      .form-textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-input:focus,
+      .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      .form-textarea {
+        min-height: 150px;
+        resize: vertical;
+      }
+
+      /* Signup Section */
+      .signup-container {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .signup-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--primary-dark);
+      }
+
+      .signup-subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+      }
+
+      .pricing-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+      }
+
+      .pricing-option {
+        font-weight: 500;
+        color: #666;
+      }
+
+      .pricing-option.active {
+        color: var(--primary-dark);
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 24px;
+        background: var(--primary);
+        border-radius: 12px;
+        cursor: pointer;
+      }
+
+      .toggle-handle {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+      }
+
+      .toggle-handle.yearly {
+        transform: translateX(26px);
+      }
+
+      .pricing-features {
+        text-align: left;
+        margin-bottom: 2rem;
+      }
+
+      .pricing-feature {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        color: #666;
+      }
+
+      .feature-check {
+        color: #28a745;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+      }
+
+      /* Footer */
+      footer {
+        background: var(--primary-dark);
+        color: white;
+        padding: 4rem 2rem 2rem;
+      }
+
+      .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 3rem;
+      }
+
+      .footer-column {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .footer-logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-left: 0.5rem;
+      }
+
+      .footer-description {
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.6;
+        margin-bottom: 2rem;
+      }
+
+      .footer-social {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .social-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        transition: var(--transition);
+      }
+
+      .social-icon:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-3px);
+      }
+
+      .footer-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: white;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .footer-link {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        transition: var(--transition);
+      }
+
+      .footer-link:hover {
+        color: white;
+        padding-left: 5px;
+      }
+
+      .footer-separator {
+        width: 100%;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 2rem 0;
+      }
+
+      .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+      }
+
+      .footer-bottom-links {
+        display: flex;
+        gap: 2rem;
+      }
+
+      .footer-bottom-link {
+        color: rgba(255, 255, 255, 0.5);
+        text-decoration: none;
+        transition: var(--transition);
+      }
+
+      .footer-bottom-link:hover {
+        color: white;
+      }
+
+      /* Loading Section */
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--light);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        flex-direction: column;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+
+      .loading-logo {
+        width: 200px;
+        margin-bottom: 2rem;
+        animation: pulse 2s infinite;
+      }
+
+      .loading-bar-container {
+        width: 300px;
+        height: 8px;
+        background-color: #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+      }
+
+      .loading-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(
+          90deg,
+          var(--teal) 0%,
+          var(--primary) 50%,
+          var(--accent) 100%
+        );
+        border-radius: 4px;
+        transition: width 0.5s ease;
+        animation: loadingAnimation 2s ease-in-out infinite;
+      }
+
+      .loading-text {
+        font-size: 1.2rem;
+        color: var(--primary-dark);
+        font-weight: 500;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            scroll-behavior: smooth;
+        50% {
+          transform: scale(1.05);
         }
-        
-        body {
-            background-color: var(--light);
-            color: var(--dark);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
+        100% {
+          transform: scale(1);
         }
-        
-        header {
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            position: fixed;
-            top: 0;
-            z-index: 100;
-            background-color: rgba(248, 249, 250, 0.9);
-            backdrop-filter: blur(10px);
+      }
+
+      @keyframes loadingAnimation {
+        0% {
+          width: 0%;
         }
-        
-        .logo {
-            height: 50px;
-            display: flex;
-            align-items: center;
+        50% {
+          width: 100%;
         }
-        
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-            margin-left: 0.5rem;
+        100% {
+          width: 0%;
         }
-        
-        .logo-accent {
-            color: var(--accent);
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-        
-        .nav-link {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            font-size: 1.1rem;
-            position: relative;
-            padding: 0.25rem 0;
-            transition: var(--transition);
-        }
-        
-        .nav-link:hover {
-            color: var(--primary);
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: 0;
-            left: 0;
-            background-color: var(--accent);
-            transition: var(--transition);
-        }
-        
-        .nav-link:hover::after {
-            width: 100%;
-        }
-        
-        .cta-button {
-            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            font-size: 1rem;
-        }
-        
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Hero Section */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            position: relative;
-        }
-        
-        .hero-content {
-            max-width: 1200px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            z-index: 1;
-            padding-top: 4rem;
-        }
-        
+      }
+
+      /* Responsive Adjustments */
+      @media (max-width: 768px) {
         .hero-title {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+          font-size: 2.5rem;
         }
-        
+
         .hero-subtitle {
-            font-size: 1.5rem;
-            color: var(--dark);
-            margin-bottom: 2rem;
-            max-width: 800px;
+          font-size: 1.2rem;
         }
-        
+
+        .nav-links {
+          display: none;
+        }
+
+        .logo-text {
+          font-size: 1.5rem;
+        }
+
         .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 3rem;
-        }
-        
-        .secondary-button {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-            border-radius: 50px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            font-size: 1rem;
-        }
-        
-        .secondary-button:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Section Common Styles */
-        .section {
-            padding: 6rem 2rem;
-            display: flex;
-            justify-content: center;
-        }
-        
-        .section-container {
-            max-width: 1200px;
-            width: 100%;
-        }
-        
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-align: center;
-            color: var(--primary-dark);
-        }
-        
-        .section-subtitle {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 3rem;
-            text-align: center;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        /* Features */
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            width: 100%;
-            margin-top: 2rem;
-        }
-        
-        .feature-card {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .feature-icon {
-            font-size: 2.5rem;
-            color: var(--accent);
-            margin-bottom: 1.5rem;
-        }
-        
-        .feature-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--primary-dark);
-        }
-        
-        .feature-description {
-            color: #666;
-            line-height: 1.6;
-        }
-        
-        /* Background Animation */
-        .bg-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
-        }
-        
-        .wave {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100px;
-            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%2310d9de" fill-opacity="0.1" d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,197.3C672,224,768,224,864,192C960,160,1056,96,1152,74.7C1248,53,1344,75,1392,85.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
-            background-size: 1440px 100px;
-            animation: wave-animation 12s linear infinite;
-        }
-        
-        .wave:nth-child(2) {
-            bottom: 10px;
-            opacity: 0.5;
-            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%232842b1" fill-opacity="0.1" d="M0,64L48,96C96,128,192,192,288,213.3C384,235,480,213,576,186.7C672,160,768,128,864,128C960,128,1056,160,1152,170.7C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
-            animation: wave-animation 8s linear infinite;
-        }
-        
-        .wave:nth-child(3) {
-            bottom: 20px;
-            opacity: 0.2;
-            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%237510F7" fill-opacity="0.1" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
-            animation: wave-animation 10s linear infinite;
-        }
-        
-        @keyframes wave-animation {
-            0% {
-                background-position-x: 0;
-            }
-            100% {
-                background-position-x: 1440px;
-            }
-        }
-        
-        /* About Section */
-        .about-content {
-            display: flex;
-            gap: 4rem;
-            align-items: center;
-            margin-top: 2rem;
-        }
-        
-        .about-image {
-            flex: 1;
-            position: relative;
-            min-height: 400px;
-        }
-        
-        .about-image-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--teal) 0%, var(--primary) 100%);
-            border-radius: 20px;
-            opacity: 0.1;
-        }
-        
-        .about-image-main {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            max-width: 400px;
-        }
-        
-        .about-text {
-            flex: 1;
-        }
-        
-        .about-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: var(--primary-dark);
-        }
-        
-        .about-description {
-            color: #666;
-            line-height: 1.8;
-            margin-bottom: 2rem;
-        }
-        
-        .about-points {
-            margin-top: 2rem;
-        }
-        
-        .about-point {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
-        }
-        
-        .about-point-icon {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-right: 1rem;
-        }
-        
-        .about-point-text {
-            flex: 1;
-        }
-        
-        .about-point-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--primary-dark);
-        }
-        
-        /* Dashboard Demo Section */
-        .dashboard-demo {
-            position: relative;
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
-        }
-        
-        .dashboard-header {
-            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 100%);
-            padding: 1.5rem;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .dashboard-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .dashboard-body {
-            padding: 2rem;
-            background: white;
-        }
-        
-        .dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: var(--light);
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-        
-        .stat-title {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-        }
-        
-        .stat-change {
-            font-size: 0.9rem;
-            color: #28a745;
-            display: flex;
-            align-items: center;
-            margin-top: 0.5rem;
-        }
-        
-        .dashboard-chart {
-            background: var(--light);
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            min-height: 300px;
-            position: relative;
-        }
-        
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-        
-        .chart-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-        }
-        
-        .chart-filters {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .chart-filter {
-            border: none;
-            background: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: #666;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .chart-filter.active {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .chart-area {
-            width: 100%;
-            height: 250px;
-            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1000 250" xmlns="http://www.w3.org/2000/svg"><path d="M0,250 L0,100 C50,80 100,130 150,120 C200,110 250,60 300,70 C350,80 400,120 450,100 C500,80 550,40 600,30 C650,20 700,50 750,70 C800,90 850,130 900,120 C950,110 1000,70 1000,50 L1000,250 Z" fill="url(%23chartGradient)" opacity="0.5" /><path d="M0,100 C50,80 100,130 150,120 C200,110 250,60 300,70 C350,80 400,120 450,100 C500,80 550,40 600,30 C650,20 700,50 750,70 C800,90 850,130 900,120 C950,110 1000,70 1000,50" fill="none" stroke="url(%23chartStroke)" stroke-width="3" /><defs><linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%232842b1;stop-opacity:0.2" /><stop offset="100%" style="stop-color:%232842b1;stop-opacity:0" /></linearGradient><linearGradient id="chartStroke" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:%2310d9de" /><stop offset="100%" style="stop-color:%237510F7" /></linearGradient></defs></svg>');
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-        
-        /* Contact Section */
-        .contact-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 4rem;
-            margin-top: 3rem;
-        }
-        
-        .contact-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-        
-        .contact-item {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-        
-        .contact-icon {
-            font-size: 1.5rem;
-            color: var(--primary);
-            padding: 0.5rem;
-            background: rgba(40, 66, 177, 0.1);
-            border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .contact-text {
-            flex: 1;
-        }
-        
-        .contact-label {
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-bottom: 0.5rem;
-        }
-        
-        .contact-value {
-            color: #666;
-            line-height: 1.6;
-        }
-        
-        .contact-form {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--primary-dark);
-        }
-        
-        .form-input,
-        .form-textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-input:focus,
-        .form-textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        
-        .form-textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-        
-        /* Signup Section */
-        .signup-container {
-            background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto;
-            text-align: center;
-        }
-        
-        .signup-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--primary-dark);
-        }
-        
-        .signup-subtitle {
-            color: #666;
-            margin-bottom: 2rem;
-        }
-        
-        .pricing-toggle {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 2rem;
-            gap: 1rem;
-        }
-        
-        .pricing-option {
-            font-weight: 500;
-            color: #666;
-        }
-        
-        .pricing-option.active {
-            color: var(--primary-dark);
-        }
-        
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 24px;
-            background: var(--primary);
-            border-radius: 12px;
-            cursor: pointer;
-        }
-        
-        .toggle-handle {
-            position: absolute;
-            left: 4px;
-            top: 4px;
-            width: 16px;
-            height: 16px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s ease;
-        }
-        
-        .toggle-handle.yearly {
-            transform: translateX(26px);
-        }
-        
-        .pricing-features {
-            text-align: left;
-            margin-bottom: 2rem;
-        }
-        
-        .pricing-feature {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-            color: #666;
-        }
-        
-        .feature-check {
-            color: #28a745;
-            margin-right: 1rem;
-            font-size: 1.2rem;
-        }
-        
-        /* Footer */
-        footer {
-            background: var(--primary-dark);
-            color: white;
-            padding: 4rem 2rem 2rem;
-        }
-        
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 3rem;
-        }
-        
-        .footer-column {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .footer-logo {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .footer-logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-            margin-left: 0.5rem;
-        }
-        
-        .footer-description {
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-        
-        .footer-social {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .social-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            color: white;
-            transition: var(--transition);
-        }
-        
-        .social-icon:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-3px);
-        }
-        
-        .footer-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: white;
-        }
-        
-        .footer-links {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .footer-link {
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-        
-        .footer-link:hover {
-            color: white;
-            padding-left: 5px;
-        }
-        
-        .footer-separator {
-            width: 100%;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 2rem 0;
-        }
-        
-        .footer-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-        }
-        
-        .footer-bottom-links {
-            display: flex;
-            gap: 2rem;
-        }
-        
-        .footer-bottom-link {
-            color: rgba(255, 255, 255, 0.5);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-        
-        .footer-bottom-link:hover {
-            color: white;
-        }
-        
-        /* Loading Section */
-        .loading-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--light);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            flex-direction: column;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-        
+          flex-direction: column;
+          width: 100%;
+          max-width: 300px;
+        }
+
         .loading-logo {
-            width: 200px;
-            margin-bottom: 2rem;
-            animation: pulse 2s infinite;
+          width: 150px;
         }
-        
+
         .loading-bar-container {
-            width: 300px;
-            height: 8px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 1rem;
+          width: 250px;
         }
-        
-        .loading-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--teal) 0%, var(--primary) 50%, var(--accent) 100%);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            animation: loadingAnimation 2s ease-in-out infinite;
+
+        .about-content {
+          flex-direction: column;
         }
-        
-        .loading-text {
-            font-size: 1.2rem;
-            color: var(--primary-dark);
-            font-weight: 500;
+
+        .about-image {
+          margin-bottom: 2rem;
         }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            100% {
-                transform: scale(1);
-            }
+
+        .section-title {
+          font-size: 2rem;
         }
-        
-        @keyframes loadingAnimation {
-            0% {
-                width: 0%;
-            }
-            50% {
-                width: 100%;
-            }
-            100% {
-                width: 0%;
-            }
+
+        .contact-container {
+          grid-template-columns: 1fr;
         }
-        
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2.5rem;
-            }
-            
-            .hero-subtitle {
-                font-size: 1.2rem;
-            }
-            
-            .nav-links {
-                display: none;
-            }
-            
-            .logo-text {
-                font-size: 1.5rem;
-            }
-            
-            .hero-buttons {
-                flex-direction: column;
-                width: 100%;
-                max-width: 300px;
-            }
-            
-            .loading-logo {
-                width: 150px;
-            }
-            
-            .loading-bar-container {
-                width: 250px;
-            }
-            
-            .about-content {
-                flex-direction: column;
-            }
-            
-            .about-image {
-                margin-bottom: 2rem;
-            }
-            
-            .section-title {
-                font-size: 2rem;
-            }
-            
-            .contact-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-bottom {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }
-            
-            .footer-bottom-links {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
+
+        .footer-container {
+          grid-template-columns: 1fr;
         }
-        
-        /* Mobile Menu */
+
+        .footer-bottom {
+          flex-direction: column;
+          gap: 1rem;
+          text-align: center;
+        }
+
+        .footer-bottom-links {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+      }
+
+      /* Mobile Menu */
+      .mobile-menu-button {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--primary-dark);
+        cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
         .mobile-menu-button {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: var(--primary-dark);
-            cursor: pointer;
+          display: block;
         }
-        
-        @media (max-width: 768px) {
-            .mobile-menu-button {
-                display: block;
-            }
-            
-            .nav-links {
-                position: fixed;
-                top: 80px;
-                left: 0;
-                width: 100%;
-                background: white;
-                flex-direction: column;
-                padding: 2rem;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-                gap: 1.5rem;
-                display: none;
-            }
-            
-            .nav-links.active {
-                display: flex;
-            }
+
+        .nav-links {
+          position: fixed;
+          top: 80px;
+          left: 0;
+          width: 100%;
+          background: white;
+          flex-direction: column;
+          padding: 2rem;
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+          gap: 1.5rem;
+          display: none;
         }
+
+        .nav-links.active {
+          display: flex;
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Loading Screen -->
     <div class="loading-container" id="loadingScreen">
-        <svg class="loading-logo" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#10d9de" />
-                    <stop offset="50%" style="stop-color:#2842b1" />
-                    <stop offset="100%" style="stop-color:#7510F7" />
-                </linearGradient>
-            </defs>
-            <text x="10" y="65" fill="#0e1e40" font-family="Arial" font-weight="bold" font-size="40">Power</text>
-            <text x="130" y="65" fill="#0e1e40" font-family="Arial" font-weight="bold" font-size="40">Wise</text>
-            <path d="M10,80 Q50,40 80,70 T150,60 T210,40" stroke="url(#logoGradient)" stroke-width="8" fill="transparent" stroke-linecap="round" />
-            <rect x="220" y="20" width="50" height="50" rx="10" fill="#7510F7" />
-            <text x="230" y="55" fill="white" font-family="Arial" font-weight="bold" font-size="30">AI</text>
-        </svg>
-        <div class="loading-bar-container">
-            <div class="loading-bar" id="loadingBar"></div>
-        </div>
-        <p class="loading-text">Ładowanie aplikacji...</p>
+      <svg
+        class="loading-logo"
+        viewBox="0 0 300 100"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: #10d9de" />
+            <stop offset="50%" style="stop-color: #2842b1" />
+            <stop offset="100%" style="stop-color: #7510f7" />
+          </linearGradient>
+        </defs>
+        <text
+          x="10"
+          y="65"
+          fill="#0e1e40"
+          font-family="Arial"
+          font-weight="bold"
+          font-size="40"
+        >
+          Power
+        </text>
+        <text
+          x="130"
+          y="65"
+          fill="#0e1e40"
+          font-family="Arial"
+          font-weight="bold"
+          font-size="40"
+        >
+          Wise
+        </text>
+        <path
+          d="M10,80 Q50,40 80,70 T150,60 T210,40"
+          stroke="url(#logoGradient)"
+          stroke-width="8"
+          fill="transparent"
+          stroke-linecap="round"
+        />
+        <rect x="220" y="20" width="50" height="50" rx="10" fill="#7510F7" />
+        <text
+          x="230"
+          y="55"
+          fill="white"
+          font-family="Arial"
+          font-weight="bold"
+          font-size="30"
+        >
+          AI
+        </text>
+      </svg>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loadingBar"></div>
+      </div>
+      <p class="loading-text">Ładowanie aplikacji...</p>
     </div>
 
     <!-- Header -->
     <header>
-        <div class="logo">
-            <svg width="50" height="50" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" style="stop-color:#10d9de" />
-                        <stop offset="50%" style="stop-color:#2842b1" />
-                        <stop offset="100%" style="stop-color:#7510F7" />
-                    </linearGradient>
-                </defs>
-                <path d="M10,50 Q50,20 80,40 T150,30 T210,10" stroke="url(#navLogoGradient)" stroke-width="8" fill="transparent" stroke-linecap="round" />
-                <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
-                <text x="225" y="22" fill="white" font-family="Arial" font-weight="bold" font-size="18">AI</text>
-            </svg>
-            <span class="logo-text">Power<span class="logo-accent">Wise</span></span>
-        </div>
-        <div class="nav-links">
-            <a href="#home" class="nav-link">Strona główna</a>
-            <a href="#features" class="nav-link">Funkcje</a>
-            <a href="#about" class="nav-link">O nas</a>
-            <a href="#dashboard" class="nav-link">Dashboard</a>
-            <a href="#contact" class="nav-link">Kontakt</a>
-        </div>
-        <a href="#signup" class="cta-button">Rozpocznij</a>
+      <div class="logo">
+        <svg
+          width="50"
+          height="50"
+          viewBox="0 0 300 100"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient
+              id="navLogoGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+            >
+              <stop offset="0%" style="stop-color: #10d9de" />
+              <stop offset="50%" style="stop-color: #2842b1" />
+              <stop offset="100%" style="stop-color: #7510f7" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M10,50 Q50,20 80,40 T150,30 T210,10"
+            stroke="url(#navLogoGradient)"
+            stroke-width="8"
+            fill="transparent"
+            stroke-linecap="round"
+          />
+          <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
+          <text
+            x="225"
+            y="22"
+            fill="white"
+            font-family="Arial"
+            font-weight="bold"
+            font-size="18"
+          >
+            AI
+          </text>
+        </svg>
+        <span class="logo-text"
+          >Power<span class="logo-accent">Wise</span></span
+        >
+      </div>
+      <div class="nav-links">
+        <a href="#home" class="nav-link">Strona główna</a>
+        <a href="#features" class="nav-link">Funkcje</a>
+        <a href="#about" class="nav-link">O nas</a>
+        <!-- <a href="#dashboard" class="nav-link">Dashboard</a>
+            <a href="#contact" class="nav-link">Kontakt</a> -->
+      </div>
+      <!-- <a href="#signup" class="cta-button" >Rozpocznij</a> -->
     </header>
 
     <!-- Hero Section -->
     <section class="hero" id="home">
-        <div class="bg-animation">
-            <div class="wave"></div>
-            <div class="wave"></div>
-            <div class="wave"></div>
+      <div class="hero-content">
+        <h1 class="hero-title">Inteligentne zarządzanie energią</h1>
+        <p class="hero-subtitle">
+          Automatyczne pobieranie, analiza i raportowanie danych dotyczących
+          produkcji oraz zużycia energii elektrycznej z wykorzystaniem sztucznej
+          inteligencji.
+        </p>
+        <div class="hero-buttons">
+          <!-- <a href="#signup" class="cta-button">Rozpocznij za darmo</a> -->
+          <a href="#features" class="secondary-button">Dowiedz się więcej</a>
         </div>
-        <div class="hero-content">
-            <h1 class="hero-title">Inteligentne zarządzanie energią</h1>
-            <p class="hero-subtitle">Automatyczne pobieranie, analiza i raportowanie danych dotyczących produkcji oraz zużycia energii elektrycznej z wykorzystaniem sztucznej inteligencji.</p>
-            <div class="hero-buttons">
-                <a href="#signup" class="cta-button">Rozpocznij za darmo</a>
-                <a href="#features" class="secondary-button">Dowiedz się więcej</a>
-            </div>
-        </div>
+      </div>
     </section>
-    
+
     <!-- Features Section -->
     <section class="section" id="features">
-        <div class="section-container">
-            <h2 class="section-title">Funkcje platformy</h2>
-            <p class="section-subtitle">Odkryj możliwości PowerWise AI</p>
-            <div class="features">
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3 class="feature-title">Analiza danych</h3>
-                    <p class="feature-description">Zaawansowana analiza danych z falowników PV i prognoz pogodowych dla optymalizacji produkcji energii.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3 class="feature-title">Automatyzacja</h3>
-                    <p class="feature-description">Automatyczne raporty i komunikacja z portalem operatora sieci dystrybucyjnej (OSD).</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3 class="feature-title">Intuicyjny dashboard</h3>
-                    <p class="feature-description">Przejrzysty interfejs z danymi w czasie rzeczywistym, historią planów i powiadomieniami.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔮</div>
-                    <h3 class="feature-title">Predykcja AI</h3>
-                    <p class="feature-description">Wykorzystanie sztucznej inteligencji do przewidywania i optymalizacji zużycia energii.</p>
-                </div>
-            </div>
+      <div class="section-container">
+        <h2 class="section-title">Funkcje platformy</h2>
+        <p class="section-subtitle">Odkryj możliwości PowerWise AI</p>
+        <div class="features">
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3 class="feature-title">Analiza danych</h3>
+            <p class="feature-description">
+              Zaawansowana analiza danych z falowników PV i prognoz pogodowych
+              dla optymalizacji produkcji energii.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3 class="feature-title">Automatyzacja</h3>
+            <p class="feature-description">
+              Automatyczne raporty i komunikacja z portalem operatora sieci
+              dystrybucyjnej (OSD).
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3 class="feature-title">Intuicyjny dashboard</h3>
+            <p class="feature-description">
+              Przejrzysty interfejs z danymi w czasie rzeczywistym, historią
+              planów i powiadomieniami.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔮</div>
+            <h3 class="feature-title">Predykcja AI</h3>
+            <p class="feature-description">
+              Wykorzystanie sztucznej inteligencji do przewidywania i
+              optymalizacji zużycia energii.
+            </p>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- About Section -->
     <section class="section" id="about">
-        <div class="section-container">
-            <h2 class="section-title">O naszej platformie</h2>
-            <p class="section-subtitle">Automatyzacja i optymalizacja zarządzania energią</p>
-            
-            <div class="about-content">
-                <div class="about-image">
-                    <div class="about-image-bg"></div>
-                    <svg class="about-image-main" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="graphGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:#2842b1;stop-opacity:0.2" />
-                                <stop offset="100%" style="stop-color:#2842b1;stop-opacity:0" />
-                            </linearGradient>
-                            <linearGradient id="graphStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style="stop-color:#10d9de" />
-                                <stop offset="100%" style="stop-color:#7510F7" />
-                            </linearGradient>
-                        </defs>
-                        <rect x="50" y="50" width="400" height="300" rx="20" fill="white" stroke="#eee" stroke-width="2" />
-                        <text x="70" y="90" font-family="Arial" font-weight="bold" font-size="18" fill="#0e1e40">Produkcja energii</text>
-                        <line x1="70" y1="120" x2="430" y2="120" stroke="#eee" stroke-width="1" />
-                        <line x1="70" y1="170" x2="430" y2="170" stroke="#eee" stroke-width="1" />
-                        <line x1="70" y1="220" x2="430" y2="220" stroke="#eee" stroke-width="1" />
-                        <line x1="70" y1="270" x2="430" y2="270" stroke="#eee" stroke-width="1" />
-                        <line x1="70" y1="320" x2="430" y2="320" stroke="#eee" stroke-width="1" />
-                        <path d="M70,320 C120,280 170,300 220,260 C270,220 320,240 370,180 C420,120 430,150 430,150" fill="url(#graphGradient)" stroke="url(#graphStroke)" stroke-width="3" fill-opacity="0.5" />
-                        <circle cx="70" cy="320" r="5" fill="#10d9de" />
-                        <circle cx="120" cy="280" r="5" fill="#2842b1" />
-                        <circle cx="170" cy="300" r="5" fill="#2842b1" />
-                        <circle cx="220" cy="260" r="5" fill="#2842b1" />
-                        <circle cx="270" cy="220" r="5" fill="#2842b1" />
-                        <circle cx="320" cy="240" r="5" fill="#2842b1" />
-                        <circle cx="370" cy="180" r="5" fill="#2842b1" />
-                        <circle cx="420" cy="120" r="5" fill="#7510F7" />
-                        <text x="70" y="350" font-family="Arial" font-size="12" fill="#666">Pon</text>
-                        <text x="120" y="350" font-family="Arial" font-size="12" fill="#666">Wt</text>
-                        <text x="170" y="350" font-family="Arial" font-size="12" fill="#666">Śr</text>
-                        <text x="220" y="350" font-family="Arial" font-size="12" fill="#666">Czw</text>
-                        <text x="270" y="350" font-family="Arial" font-size="12" fill="#666">Pt</text>
-                        <text x="320" y="350" font-family="Arial" font-size="12" fill="#666">Sob</text>
-                        <text x="370" y="350" font-family="Arial" font-size="12" fill="#666">Ndz</text>
-                        <text x="420" y="350" font-family="Arial" font-size="12" fill="#666">Pon</text>
-                    </svg>
+      <div class="section-container">
+        <h2 class="section-title">O naszej platformie</h2>
+        <p class="section-subtitle">
+          Automatyzacja i optymalizacja zarządzania energią
+        </p>
+
+        <div class="about-content">
+          <div class="about-image">
+            <div class="about-image-bg"></div>
+            <svg
+              class="about-image-main"
+              viewBox="0 0 500 400"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <linearGradient
+                  id="graphGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    style="stop-color: #2842b1; stop-opacity: 0.2"
+                  />
+                  <stop
+                    offset="100%"
+                    style="stop-color: #2842b1; stop-opacity: 0"
+                  />
+                </linearGradient>
+                <linearGradient
+                  id="graphStroke"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" style="stop-color: #10d9de" />
+                  <stop offset="100%" style="stop-color: #7510f7" />
+                </linearGradient>
+              </defs>
+              <rect
+                x="50"
+                y="50"
+                width="400"
+                height="300"
+                rx="20"
+                fill="white"
+                stroke="#eee"
+                stroke-width="2"
+              />
+              <text
+                x="70"
+                y="90"
+                font-family="Arial"
+                font-weight="bold"
+                font-size="18"
+                fill="#0e1e40"
+              >
+                Produkcja energii
+              </text>
+              <line
+                x1="70"
+                y1="120"
+                x2="430"
+                y2="120"
+                stroke="#eee"
+                stroke-width="1"
+              />
+              <line
+                x1="70"
+                y1="170"
+                x2="430"
+                y2="170"
+                stroke="#eee"
+                stroke-width="1"
+              />
+              <line
+                x1="70"
+                y1="220"
+                x2="430"
+                y2="220"
+                stroke="#eee"
+                stroke-width="1"
+              />
+              <line
+                x1="70"
+                y1="270"
+                x2="430"
+                y2="270"
+                stroke="#eee"
+                stroke-width="1"
+              />
+              <line
+                x1="70"
+                y1="320"
+                x2="430"
+                y2="320"
+                stroke="#eee"
+                stroke-width="1"
+              />
+              <path
+                d="M70,320 C120,280 170,300 220,260 C270,220 320,240 370,180 C420,120 430,150 430,150"
+                fill="url(#graphGradient)"
+                stroke="url(#graphStroke)"
+                stroke-width="3"
+                fill-opacity="0.5"
+              />
+              <circle cx="70" cy="320" r="5" fill="#10d9de" />
+              <circle cx="120" cy="280" r="5" fill="#2842b1" />
+              <circle cx="170" cy="300" r="5" fill="#2842b1" />
+              <circle cx="220" cy="260" r="5" fill="#2842b1" />
+              <circle cx="270" cy="220" r="5" fill="#2842b1" />
+              <circle cx="320" cy="240" r="5" fill="#2842b1" />
+              <circle cx="370" cy="180" r="5" fill="#2842b1" />
+              <circle cx="420" cy="120" r="5" fill="#7510F7" />
+              <text
+                x="70"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Pon
+              </text>
+              <text
+                x="120"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Wt
+              </text>
+              <text
+                x="170"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Śr
+              </text>
+              <text
+                x="220"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Czw
+              </text>
+              <text
+                x="270"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Pt
+              </text>
+              <text
+                x="320"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Sob
+              </text>
+              <text
+                x="370"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Ndz
+              </text>
+              <text
+                x="420"
+                y="350"
+                font-family="Arial"
+                font-size="12"
+                fill="#666"
+              >
+                Pon
+              </text>
+            </svg>
+          </div>
+          <div class="about-text">
+            <h3 class="about-title">
+              PowerWise AI - Efektywność dzięki automatyzacji
+            </h3>
+            <p class="about-description">
+              PowerWise AI to platforma SaaS stworzona dla optymalnego
+              zarządzania produkcją i zużyciem energii elektrycznej. Nasza
+              platforma automatyzuje proces pobierania, analizy i raportowania
+              danych, elimując potrzebę ręcznego wprowadzania informacji i
+              minimalizując ryzyko błędów.
+            </p>
+            <p class="about-description">
+              Wykorzystujemy zaawansowane algorytmy sztucznej inteligencji do
+              przewidywania produkcji energii na podstawie danych historycznych
+              i prognoz pogodowych, co pozwala na optymalne planowanie i
+              zarządzanie zasobami energetycznymi.
+            </p>
+            <div class="about-points">
+              <div class="about-point">
+                <div class="about-point-icon">⚡</div>
+                <div class="about-point-text">
+                  <h4 class="about-point-title">Oszczędność czasu</h4>
+                  <p>
+                    Automatyczne pobieranie danych i generowanie raportów
+                    pozwala zaoszczędzić nawet 80% czasu potrzebnego na
+                    zarządzanie energią.
+                  </p>
                 </div>
-                <div class="about-text">
-                    <h3 class="about-title">PowerWise AI - Efektywność dzięki automatyzacji</h3>
-                    <p class="about-description">
-                        PowerWise AI to platforma SaaS stworzona dla optymalnego zarządzania produkcją i zużyciem energii elektrycznej. 
-                        Nasza platforma automatyzuje proces pobierania, analizy i raportowania danych, elimując 
-                        potrzebę ręcznego wprowadzania informacji i minimalizując ryzyko błędów.
-                    </p>
-                    <p class="about-description">
-                        Wykorzystujemy zaawansowane algorytmy sztucznej inteligencji do przewidywania produkcji energii 
-                        na podstawie danych historycznych i prognoz pogodowych, co pozwala na optymalne planowanie 
-                        i zarządzanie zasobami energetycznymi.
-                    </p>
-                    <div class="about-points">
-                        <div class="about-point">
-                            <div class="about-point-icon">⚡</div>
-                            <div class="about-point-text">
-                                <h4 class="about-point-title">Oszczędność czasu</h4>
-                                <p>Automatyczne pobieranie danych i generowanie raportów pozwala zaoszczędzić nawet 80% czasu potrzebnego na zarządzanie energią.</p>
-                            </div>
-                        </div>
-                        <div class="about-point">
-                            <div class="about-point-icon">📈</div>
-                            <div class="about-point-text">
-                                <h4 class="about-point-title">Dokładniejsze prognozy</h4>
-                                <p>Dzięki integracji z danymi pogodowymi, nasze algorytmy potrafią przewidzieć produkcję energii z dokładnością do 95%.</p>
-                            </div>
-                        </div>
-                        <div class="about-point">
-                            <div class="about-point-icon">🔄</div>
-                            <div class="about-point-text">
-                                <h4 class="about-point-title">Płynna integracja</h4>
-                                <p>Bezproblemowa komunikacja z portalami operatorów sieci dystrybucyjnych (OSD) i falownikami PV.</p>
-                            </div>
-                        </div>
-                    </div>
+              </div>
+              <div class="about-point">
+                <div class="about-point-icon">📈</div>
+                <div class="about-point-text">
+                  <h4 class="about-point-title">Dokładniejsze prognozy</h4>
+                  <p>
+                    Dzięki integracji z danymi pogodowymi, nasze algorytmy
+                    potrafią przewidzieć produkcję energii z dokładnością do
+                    95%.
+                  </p>
                 </div>
+              </div>
+              <div class="about-point">
+                <div class="about-point-icon">🔄</div>
+                <div class="about-point-text">
+                  <h4 class="about-point-title">Płynna integracja</h4>
+                  <p>
+                    Bezproblemowa komunikacja z portalami operatorów sieci
+                    dystrybucyjnych (OSD) i falownikami PV.
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- Dashboard Section -->
-    <section class="section" id="dashboard">
+    <!-- <section class="section" id="dashboard">
         <div class="section-container">
             <h2 class="section-title">Intuicyjny Dashboard</h2>
             <p class="section-subtitle">Monitoruj i zarządzaj swoją energią w czasie rzeczywistym</p>
@@ -1173,10 +1388,10 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> -->
 
     <!-- Contact Section -->
-    <section class="section" id="contact">
+    <!-- <section class="section" id="contact">
         <div class="section-container">
             <h2 class="section-title">Kontakt</h2>
             <p class="section-subtitle">Skontaktuj się z nami, aby dowiedzieć się więcej</p>
@@ -1243,10 +1458,10 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> -->
 
     <!-- Sign Up Section -->
-    <section class="section" id="signup">
+    <!-- <section class="section" id="signup">
         <div class="section-container">
             <h2 class="section-title">Rozpocznij już dziś</h2>
             <p class="section-subtitle">Dołącz do PowerWise AI i optymalizuj zarządzanie energią</p>
@@ -1289,156 +1504,193 @@
                 <a href="#" class="cta-button">Rozpocznij bezpłatny okres próbny</a>
             </div>
         </div>
-    </section>
+    </section> -->
 
     <!-- Footer -->
     <footer>
-        <div class="footer-container">
-            <div class="footer-column">
-                <div class="footer-logo">
-                    <svg width="40" height="40" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style="stop-color:#10d9de" />
-                                <stop offset="50%" style="stop-color:#2842b1" />
-                                <stop offset="100%" style="stop-color:#7510F7" />
-                            </linearGradient>
-                        </defs>
-                        <path d="M10,50 Q50,20 80,40 T150,30 T210,10" stroke="url(#footerLogoGradient)" stroke-width="8" fill="transparent" stroke-linecap="round" />
-                        <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
-                        <text x="225" y="22" fill="white" font-family="Arial" font-weight="bold" font-size="18">AI</text>
-                    </svg>
-                    <span class="footer-logo-text">PowerWise</span>
-                </div>
-                <p class="footer-description">
-                    Platforma SaaS do automatycznego pobierania, analizy i raportowania danych dotyczących produkcji oraz zużycia energii elektrycznej.
-                </p>
-                <div class="footer-social">
-                    <a href="#" class="social-icon">𝕏</a>
-                    <a href="#" class="social-icon">𝕗</a>
-                    <a href="#" class="social-icon">𝕃</a>
-                    <a href="#" class="social-icon">𝕀</a>
-                </div>
-            </div>
-            
-            <div class="footer-column">
-                <h3 class="footer-title">Platforma</h3>
-                <div class="footer-links">
-                    <a href="#features" class="footer-link">Funkcje</a>
-                    <a href="#about" class="footer-link">O platformie</a>
-                    <a href="#dashboard" class="footer-link">Dashboard</a>
-                    <a href="#" class="footer-link">Cennik</a>
-                    <a href="#" class="footer-link">Wersje</a>
-                </div>
-            </div>
-            
-            <div class="footer-column">
-                <h3 class="footer-title">Wsparcie</h3>
-                <div class="footer-links">
-                    <a href="#" class="footer-link">Centrum pomocy</a>
-                    <a href="#" class="footer-link">Dokumentacja API</a>
-                    <a href="#" class="footer-link">Status systemu</a>
-                    <a href="#contact" class="footer-link">Kontakt</a>
-                </div>
-            </div>
-            
-            <div class="footer-column">
-                <h3 class="footer-title">Firma</h3>
-                <div class="footer-links">
-                    <a href="#" class="footer-link">O nas</a>
-                    <a href="#" class="footer-link">Kariera</a>
-                    <a href="#" class="footer-link">Blog</a>
-                    <a href="#" class="footer-link">Dla prasy</a>
-                </div>
-            </div>
+      <div class="footer-container">
+        <div class="footer-column">
+          <div class="footer-logo">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 300 100"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <linearGradient
+                  id="footerLogoGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" style="stop-color: #10d9de" />
+                  <stop offset="50%" style="stop-color: #2842b1" />
+                  <stop offset="100%" style="stop-color: #7510f7" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M10,50 Q50,20 80,40 T150,30 T210,10"
+                stroke="url(#footerLogoGradient)"
+                stroke-width="8"
+                fill="transparent"
+                stroke-linecap="round"
+              />
+              <rect
+                x="220"
+                y="0"
+                width="30"
+                height="30"
+                rx="5"
+                fill="#7510F7"
+              />
+              <text
+                x="225"
+                y="22"
+                fill="white"
+                font-family="Arial"
+                font-weight="bold"
+                font-size="18"
+              >
+                AI
+              </text>
+            </svg>
+            <span class="footer-logo-text">PowerWise</span>
+          </div>
+          <p class="footer-description">
+            Platforma SaaS do automatycznego pobierania, analizy i raportowania
+            danych dotyczących produkcji oraz zużycia energii elektrycznej.
+          </p>
+          <div class="footer-social">
+            <a href="#" class="social-icon">𝕏</a>
+            <a href="#" class="social-icon">𝕗</a>
+            <a href="#" class="social-icon">𝕃</a>
+            <a href="#" class="social-icon">𝕀</a>
+          </div>
         </div>
-        
-        <div class="footer-separator"></div>
-        
-        <div class="footer-bottom">
-            <div class="footer-copyright">
-                © 2025 PowerWise AI. Wszelkie prawa zastrzeżone.
-            </div>
-            <div class="footer-bottom-links">
-                <a href="#" class="footer-bottom-link">Polityka prywatności</a>
-                <a href="#" class="footer-bottom-link">Warunki korzystania</a>
-                <a href="#" class="footer-bottom-link">Polityka cookies</a>
-            </div>
+
+        <div class="footer-column">
+          <h3 class="footer-title">Platforma</h3>
+          <div class="footer-links">
+            <a href="#features" class="footer-link">Funkcje</a>
+            <a href="#about" class="footer-link">O platformie</a>
+            <a href="#dashboard" class="footer-link">Dashboard</a>
+            <a href="#" class="footer-link">Cennik</a>
+            <a href="#" class="footer-link">Wersje</a>
+          </div>
         </div>
+
+        <div class="footer-column">
+          <h3 class="footer-title">Wsparcie</h3>
+          <div class="footer-links">
+            <a href="#" class="footer-link">Centrum pomocy</a>
+            <a href="#" class="footer-link">Dokumentacja API</a>
+            <a href="#" class="footer-link">Status systemu</a>
+            <a href="#contact" class="footer-link">Kontakt</a>
+          </div>
+        </div>
+
+        <div class="footer-column">
+          <h3 class="footer-title">Firma</h3>
+          <div class="footer-links">
+            <a href="#" class="footer-link">O nas</a>
+            <a href="#" class="footer-link">Kariera</a>
+            <a href="#" class="footer-link">Blog</a>
+            <a href="#" class="footer-link">Dla prasy</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-separator"></div>
+
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © 2025 PowerWise AI. Wszelkie prawa zastrzeżone.
+        </div>
+        <div class="footer-bottom-links">
+          <a href="#" class="footer-bottom-link">Polityka prywatności</a>
+          <a href="#" class="footer-bottom-link">Warunki korzystania</a>
+          <a href="#" class="footer-bottom-link">Polityka cookies</a>
+        </div>
+      </div>
     </footer>
 
     <script>
-        // Loading screen simulation
-        document.addEventListener('DOMContentLoaded', function() {
-            const loadingScreen = document.getElementById('loadingScreen');
-            const loadingBar = document.getElementById('loadingBar');
-            
-            // Simulate loading progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 5;
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        loadingScreen.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingScreen.style.visibility = 'hidden';
-                        }, 500);
-                    }, 500);
-                }
-            }, 100);
-            
-            // Smooth scroll for navigation links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                });
+      // Loading screen simulation
+      document.addEventListener("DOMContentLoaded", function () {
+        const loadingScreen = document.getElementById("loadingScreen");
+        const loadingBar = document.getElementById("loadingBar");
+
+        // Simulate loading progress
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 5;
+          if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              loadingScreen.style.opacity = "0";
+              setTimeout(() => {
+                loadingScreen.style.visibility = "hidden";
+              }, 500);
+            }, 500);
+          }
+        }, 100);
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            document.querySelector(this.getAttribute("href")).scrollIntoView({
+              behavior: "smooth",
             });
-            
-            // Toggle for pricing
-            const toggleSwitch = document.querySelector('.toggle-switch');
-            const toggleHandle = document.querySelector('.toggle-handle');
-            const pricingOptions = document.querySelectorAll('.pricing-option');
-            
-            if (toggleSwitch) {
-                toggleSwitch.addEventListener('click', function() {
-                    toggleHandle.classList.toggle('yearly');
-                    pricingOptions.forEach(option => {
-                        option.classList.toggle('active');
-                    });
-                });
-            }
-            
-            // Mobile menu toggle
-            const mobileMenuButton = document.createElement('button');
-            mobileMenuButton.classList.add('mobile-menu-button');
-            mobileMenuButton.innerHTML = '☰';
-            
-            const header = document.querySelector('header');
-            const navLinks = document.querySelector('.nav-links');
-            
-            if (window.innerWidth <= 768) {
-                header.insertBefore(mobileMenuButton, document.querySelector('.cta-button'));
-                
-                mobileMenuButton.addEventListener('click', function() {
-                    navLinks.classList.toggle('active');
-                });
-            }
-            
-            // Close mobile menu when clicking a link
-            const navLinksElements = document.querySelectorAll('.nav-link');
-            navLinksElements.forEach(link => {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) {
-                        navLinks.classList.remove('active');
-                    }
-                });
-            });
+          });
         });
+
+        // Toggle for pricing
+        const toggleSwitch = document.querySelector(".toggle-switch");
+        const toggleHandle = document.querySelector(".toggle-handle");
+        const pricingOptions = document.querySelectorAll(".pricing-option");
+
+        if (toggleSwitch) {
+          toggleSwitch.addEventListener("click", function () {
+            toggleHandle.classList.toggle("yearly");
+            pricingOptions.forEach((option) => {
+              option.classList.toggle("active");
+            });
+          });
+        }
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.createElement("button");
+        mobileMenuButton.classList.add("mobile-menu-button");
+        mobileMenuButton.innerHTML = "☰";
+
+        const header = document.querySelector("header");
+        const navLinks = document.querySelector(".nav-links");
+
+        if (window.innerWidth <= 768) {
+          header.insertBefore(
+            mobileMenuButton,
+            document.querySelector(".cta-button")
+          );
+
+          mobileMenuButton.addEventListener("click", function () {
+            navLinks.classList.toggle("active");
+          });
+        }
+
+        // Close mobile menu when clicking a link
+        const navLinksElements = document.querySelectorAll(".nav-link");
+        navLinksElements.forEach((link) => {
+          link.addEventListener("click", function () {
+            if (window.innerWidth <= 768) {
+              navLinks.classList.remove("active");
+            }
+          });
+        });
+      });
     </script>
-</body>
+  </body>
 </html>
