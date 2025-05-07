@@ -1109,29 +1109,33 @@
                         processed_data.last_processed_date }}
                       </p>
                     </div>
-                    <div class="col-md-6 text-end">
+                    <div
+                      class="col-md-6 text-end"
+                      style="padding-top: 10px; gap: 20px"
+                    >
                       <button
                         id="toggleEditMode"
-                        class="btn btn-outline-primary mt-3"
+                        class="btn btn-outline-primary"
                       >
                         <i class="bi bi-pencil"></i> Włącz tryb edycji
+                      </button>
+                      <!-- Przycisk zapisujący zmiany -->
+
+                      <button
+                        id="saveExcelChanges"
+                        class="btn btn-success"
+                        style="display: none"
+                      >
+                        <i class="bi bi-save"></i> Zapisz zmiany
                       </button>
                       <!-- Przycisk otwierający modal do wgrywania pliku -->
                       <button
                         type="button"
-                        class="btn btn-primary"
+                        class="btn btn-primary ml-2"
                         data-bs-toggle="modal"
                         data-bs-target="#uploadExcelModal"
                       >
                         <i class="bi bi-upload"></i> Wgraj nowy plik Excel
-                      </button>
-                      <!-- Przycisk zapisujący zmiany -->
-                      <button
-                        id="saveExcelChanges"
-                        class="btn btn-success ms-2"
-                        style="display: none"
-                      >
-                        <i class="bi bi-save"></i> Zapisz zmiany
                       </button>
                     </div>
                   </div>
