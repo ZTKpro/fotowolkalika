@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PGB2 Report Sender - Profil użytkownika</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    <style>
+      :root {
+        --primary-dark: #0e1e40;
+        --primary: #2842b1;
+        --secondary: #5068e2;
+        --accent: #7510f7;
+        --teal: #10d9de;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --success: #28a745;
+        --danger: #dc3545;
+        --warning: #ffc107;
+        --transition: all 0.3s ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: var(--light);
+        color: var(--dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding-top: 0;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .bg-animation {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 0;
+      }
+
+      .wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100px;
+        background-size: 1440px 100px;
+        animation: wave-animation 12s linear infinite;
+        opacity: 0.1;
+      }
+
+      .wave:nth-child(1) {
+        bottom: 0;
+        opacity: 0.1;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%2310d9de" fill-opacity="0.3" d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,197.3C672,224,768,224,864,192C960,160,1056,96,1152,74.7C1248,53,1344,75,1392,85.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+      }
+
+      .wave:nth-child(2) {
+        bottom: 10px;
+        opacity: 0.05;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%232842b1" fill-opacity="0.3" d="M0,64L48,96C96,128,192,192,288,213.3C384,235,480,213,576,186.7C672,160,768,128,864,128C960,128,1056,160,1152,170.7C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        animation: wave-animation 8s linear infinite;
+      }
+
+      .wave:nth-child(3) {
+        bottom: 20px;
+        opacity: 0.02;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%237510F7" fill-opacity="0.3" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        animation: wave-animation 10s linear infinite;
+      }
+
+      @keyframes wave-animation {
+        0% {
+          background-position-x: 0;
+        }
+        100% {
+          background-position-x: 1440px;
+        }
+      }
+
+      .container {
+        position: relative;
+        z-index: 1;
+        padding-top: 2rem;
+      }
+
+      header {
+        margin-bottom: 2rem;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .logo-text {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(
+          90deg,
+          var(--primary-dark) 0%,
+          var(--accent) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-left: 1rem;
+      }
+
+      .header-subtitle {
+        color: #666;
+        font-weight: 400;
+      }
+
+      .btn {
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+      }
+
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          90deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        border: none;
+      }
+
+      .btn-outline-primary {
+        border: 2px solid var(--primary);
+        color: var(--primary);
+        background: white;
+      }
+
+      .btn-outline-primary:hover {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-success {
+        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        border: none;
+      }
+
+      .profile-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+        border: none;
+        margin-bottom: 2rem;
+      }
+
+      .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .profile-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding-bottom: 1rem;
+      }
+
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(
+          45deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-right: 1.5rem;
+      }
+
+      .profile-info {
+        flex: 1;
+      }
+
+      .profile-name {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-username {
+        color: #666;
+        margin-bottom: 0.5rem;
+      }
+
+      .profile-role {
+        display: inline-block;
+        background: linear-gradient(
+          90deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        color: white;
+        padding: 0.25rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .profile-role.admin {
+        background: linear-gradient(90deg, #dc3545 0%, #fd7e14 100%);
+      }
+
+      .profile-section {
+        margin-bottom: 2rem;
+      }
+
+      .profile-section-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .profile-section-title i {
+        margin-right: 0.5rem;
+        color: var(--primary);
+      }
+
+      .profile-item {
+        margin-bottom: 1rem;
+      }
+
+      .profile-item-label {
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-item-value {
+        font-weight: 600;
+        color: var(--dark);
+      }
+
+      .password-form {
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .password-form-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 1rem;
+      }
+
+      .form-control {
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+        margin-bottom: 1rem;
+      }
+
+      .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(40, 66, 177, 0.25);
+        border-color: var(--primary);
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: var(--primary-dark);
+        margin-bottom: 0.5rem;
+      }
+
+      .back-to-dashboard {
+        display: inline-flex;
+        align-items: center;
+        color: var(--primary);
+        text-decoration: none;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        transition: var(--transition);
+      }
+
+      .back-to-dashboard i {
+        margin-right: 0.5rem;
+      }
+
+      .back-to-dashboard:hover {
+        color: var(--accent);
+        transform: translateX(-5px);
+      }
+
+      .alert {
+        border-radius: 15px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding-top: 1rem;
+        }
+
+        .profile-card {
+          padding: 1.5rem;
+        }
+
+        .profile-card-header {
+          flex-direction: column;
+          text-align: center;
+        }
+
+        .profile-avatar {
+          margin-right: 0;
+          margin-bottom: 1rem;
+        }
+
+        .btn {
+          width: 100%;
+          margin-bottom: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+      <div class="wave"></div>
+      <div class="wave"></div>
+      <div class="wave"></div>
+    </div>
+
+    <div class="container">
+      <header>
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <div class="logo-container">
+              <svg
+                width="50"
+                height="50"
+                viewBox="0 0 300 100"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient
+                    id="logoGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="0%"
+                  >
+                    <stop offset="0%" style="stop-color: #10d9de" />
+                    <stop offset="50%" style="stop-color: #2842b1" />
+                    <stop offset="100%" style="stop-color: #7510f7" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M10,50 Q50,20 80,40 T150,30 T210,10"
+                  stroke="url(#logoGradient)"
+                  stroke-width="8"
+                  fill="transparent"
+                  stroke-linecap="round"
+                />
+                <rect
+                  x="220"
+                  y="0"
+                  width="30"
+                  height="30"
+                  rx="5"
+                  fill="#7510F7"
+                />
+                <text
+                  x="225"
+                  y="22"
+                  fill="white"
+                  font-family="Arial"
+                  font-weight="bold"
+                  font-size="18"
+                >
+                  PGB2
+                </text>
+              </svg>
+              <h1 class="logo-text">PGB2 Report Sender</h1>
+            </div>
+            <p class="header-subtitle">
+              System automatycznego wysyłania raportów do PGB2
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <a href="/dashboard" class="back-to-dashboard">
+        <i class="bi bi-arrow-left"></i> Powrót do dashboardu
+      </a>
+
+      {% if request.query_params.get('success') %}
+      <div class="alert alert-success" role="alert">
+        {{ request.query_params.get('success') }}
+      </div>
+      {% endif %} {% if request.query_params.get('error') %}
+      <div class="alert alert-danger" role="alert">
+        {{ request.query_params.get('error') }}
+      </div>
+      {% endif %}
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="profile-card">
+            <div class="profile-card-header">
+              <div class="profile-avatar">{{ user.username[0]|upper }}</div>
+              <div class="profile-info">
+                <h2 class="profile-name">
+                  {{ user.full_name or user.username }}
+                </h2>
+                <p class="profile-username">@{{ user.username }}</p>
+                <span
+                  class="profile-role {{ 'admin' if user.is_admin else '' }}"
+                >
+                  {% if user.is_admin %}Administrator{% else %}Użytkownik{%
+                  endif %}
+                </span>
+              </div>
+            </div>
+
+            <div class="profile-section">
+              <h3 class="profile-section-title">
+                <i class="bi bi-person-vcard"></i> Informacje o koncie
+              </h3>
+              <div class="profile-item">
+                <div class="profile-item-label">Nazwa użytkownika</div>
+                <div class="profile-item-value">{{ user.username }}</div>
+              </div>
+              <div class="profile-item">
+                <div class="profile-item-label">Adres email</div>
+                <div class="profile-item-value">{{ user.email }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="profile-card">
+            <h3 class="profile-section-title">
+              <i class="bi bi-pencil-square"></i> Edytuj profil
+            </h3>
+
+            <form action="/profile/update" method="post">
+              <div class="mb-3">
+                <label for="fullName" class="form-label">Imię i nazwisko</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="fullName"
+                  name="full_name"
+                  value="{{ user.full_name or '' }}"
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="email" class="form-label">Adres email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                  value="{{ user.email }}"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                Zapisz zmiany
+              </button>
+            </form>
+
+            <div class="password-form">
+              <h4 class="password-form-title">Zmień hasło</h4>
+              <form action="/profile/update" method="post">
+                <div class="mb-3">
+                  <label for="currentPassword" class="form-label"
+                    >Aktualne hasło</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="currentPassword"
+                    name="current_password"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="newPassword" class="form-label">Nowe hasło</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="newPassword"
+                    name="new_password"
+                    required
+                    minlength="8"
+                  />
+                  <small class="text-muted"
+                    >Hasło musi zawierać min. 8 znaków</small
+                  >
+                </div>
+
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label"
+                    >Powtórz nowe hasło</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="confirmPassword"
+                    required
+                    minlength="8"
+                  />
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                  Zmień hasło
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Walidacja formularza zmiany hasła
+        const newPassword = document.getElementById("newPassword");
+        const confirmPassword = document.getElementById("confirmPassword");
+        const passwordForm = confirmPassword.closest("form");
+
+        confirmPassword.addEventListener("input", function () {
+          if (this.value !== newPassword.value) {
+            this.setCustomValidity("Hasła muszą być identyczne");
+          } else {
+            this.setCustomValidity("");
+          }
+        });
+
+        passwordForm.addEventListener("submit", function (event) {
+          if (newPassword.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity("Hasła muszą być identyczne");
+            event.preventDefault();
+          } else {
+            confirmPassword.setCustomValidity("");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

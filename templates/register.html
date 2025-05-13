@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGB2 Report Sender - Rejestracja</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+    :root {
+        --primary-dark: #0e1e40;
+        --primary: #2842b1;
+        --secondary: #5068e2;
+        --accent: #7510f7;
+        --teal: #10d9de;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --transition: all 0.3s ease;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        background-color: var(--light);
+        color: var(--dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow-x: hidden;
+        padding: 2rem;
+    }
+
+    .bg-animation {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100px;
+        background-size: 1440px 100px;
+        animation: wave-animation 12s linear infinite;
+        opacity: 0.1;
+    }
+
+    .wave:nth-child(1) {
+        bottom: 0;
+        opacity: 0.1;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%2310d9de" fill-opacity="0.3" d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,197.3C672,224,768,224,864,192C960,160,1056,96,1152,74.7C1248,53,1344,75,1392,85.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+    }
+
+    .wave:nth-child(2) {
+        bottom: 10px;
+        opacity: 0.05;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%232842b1" fill-opacity="0.3" d="M0,64L48,96C96,128,192,192,288,213.3C384,235,480,213,576,186.7C672,160,768,128,864,128C960,128,1056,160,1152,170.7C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        animation: wave-animation 8s linear infinite;
+    }
+
+    .wave:nth-child(3) {
+        bottom: 20px;
+        opacity: 0.02;
+        background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%237510F7" fill-opacity="0.3" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        animation: wave-animation 10s linear infinite;
+    }
+
+    @keyframes wave-animation {
+        0% {
+            background-position-x: 0;
+        }
+        100% {
+            background-position-x: 1440px;
+        }
+    }
+
+    .register-container {
+        max-width: 500px;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+    }
+
+    .logo-container {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .logo-text {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-top: 1rem;
+    }
+
+    .register-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+
+    .register-title {
+        color: var(--primary-dark);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .register-subtitle {
+        color: #666;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-label {
+        color: var(--primary-dark);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        transition: var(--transition);
+    }
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(40, 66, 177, 0.25);
+        border-color: var(--primary);
+    }
+
+    .input-group {
+        margin-bottom: 1rem;
+    }
+
+    .input-group-text {
+        border-radius: 50px 0 0 50px;
+        background-color: var(--light);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-right: none;
+        padding-left: 1.5rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 50px 50px 0;
+        margin-bottom: 0;
+        border-left: none;
+    }
+
+    .btn {
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+        border: none;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .register-footer {
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+
+    .register-footer a {
+        color: var(--primary);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .register-footer a:hover {
+        color: var(--accent);
+    }
+
+    .alert {
+        border-radius: 15px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .password-strength {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .password-strength-bar {
+        width: 100%;
+        height: 5px;
+        background-color: #e0e0e0;
+        border-radius: 10px;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+
+    .password-strength-progress {
+        height: 100%;
+        width: 0%;
+        border-radius: 10px;
+        transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .password-strength-label {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    .valid-feedback, .invalid-feedback {
+        display: none;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .was-validated .form-control:valid ~ .valid-feedback,
+    .was-validated .form-control:invalid ~ .invalid-feedback {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .register-container {
+            padding: 0 1rem;
+        }
+        
+        .register-card {
+            padding: 1.5rem;
+        }
+    }
+</style>
+</head>
+<body>
+<!-- Background Animation -->
+<div class="bg-animation">
+    <div class="wave"></div>
+    <div class="wave"></div>
+    <div class="wave"></div>
+</div>
+
+<div class="register-container">
+    <div class="logo-container">
+        <svg width="80" height="80" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color: #10d9de" />
+                    <stop offset="50%" style="stop-color: #2842b1" />
+                    <stop offset="100%" style="stop-color: #7510f7" />
+                </linearGradient>
+            </defs>
+            <path d="M10,50 Q50,20 80,40 T150,30 T210,10" stroke="url(#logoGradient)" stroke-width="8" fill="transparent" stroke-linecap="round" />
+            <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
+            <text x="225" y="22" fill="white" font-family="Arial" font-weight="bold" font-size="18">PGB2</text>
+        </svg>
+        <h1 class="logo-text">PGB2 Report Sender</h1>
+    </div>
+
+    <div class="card register-card">
+        <h2 class="register-title">Rejestracja</h2>
+        <p class="register-subtitle">Utwórz nowe konto, aby korzystać z systemu</p>
+
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-danger" role="alert">
+            {{ request.query_params.get('error') }}
+        </div>
+        {% endif %}
+
+        <form action="/register" method="post" id="registerForm" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="fullName" class="form-label">Imię i nazwisko</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-person-badge"></i>
+                    </span>
+                    <input type="text" class="form-control" id="fullName" name="full_name" placeholder="Twoje imię i nazwisko">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Nazwa użytkownika <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-person"></i>
+                    </span>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Nazwa użytkownika" required minlength="4">
+                </div>
+                <div class="invalid-feedback">Nazwa użytkownika musi zawierać min. 4 znaki</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-envelope"></i>
+                    </span>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Adres email" required>
+                </div>
+                <div class="invalid-feedback">Podaj prawidłowy adres email</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Hasło <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-lock"></i>
+                    </span>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Hasło" required minlength="8">
+                    <span class="input-group-text cursor-pointer" id="togglePassword" style="border-radius: 0 50px 50px 0; border-left: none; cursor: pointer;">
+                        <i class="bi bi-eye"></i>
+                    </span>
+                </div>
+                <div class="password-strength">
+                    <div class="password-strength-bar">
+                        <div class="password-strength-progress" id="passwordStrength"></div>
+                    </div>
+                    <div class="password-strength-label" id="passwordStrengthText">Siła hasła</div>
+                </div>
+                <div class="invalid-feedback">Hasło musi zawierać min. 8 znaków</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Powtórz hasło <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-lock-fill"></i>
+                    </span>
+                    <input type="password" class="form-control" id="confirmPassword" placeholder="Powtórz hasło" required>
+                </div>
+                <div class="invalid-feedback">Hasła muszą być identyczne</div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="acceptTerms" required>
+                <label class="form-check-label" for="acceptTerms">
+                    Akceptuję <a href="#" target="_blank">regulamin</a> i <a href="#" target="_blank">politykę prywatności</a>
+                </label>
+                <div class="invalid-feedback">Musisz zaakceptować regulamin i politykę prywatności</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Zarejestruj się</button>
+        </form>
+
+        <div class="register-footer">
+            <p>Masz już konto? <a href="/login">Zaloguj się</a></p>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center text-muted">
+        <small>&copy; 2025 PGB2 Report Sender. Wszelkie prawa zastrzeżone.</small>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Walidacja formularza
+        const form = document.getElementById('registerForm');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordStrength = document.getElementById('passwordStrength');
+        const passwordStrengthText = document.getElementById('passwordStrengthText');
+        const togglePassword = document.getElementById('togglePassword');
+
+        // Przełączanie widoczności hasła
+        togglePassword.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('bi-eye');
+            this.querySelector('i').classList.toggle('bi-eye-slash');
+        });
+
+        // Sprawdzanie siły hasła
+        password.addEventListener('input', function() {
+            const value = this.value;
+            let strength = 0;
+            let color = '#dc3545'; // czerwony - domyślny kolor dla słabego hasła
+
+            // Długość hasła
+            if (value.length >= 8) strength += 20;
+            
+            // Wielkie litery
+            if (/[A-Z]/.test(value)) strength += 20;
+            
+            // Małe litery
+            if (/[a-z]/.test(value)) strength += 20;
+            
+            // Cyfry
+            if (/[0-9]/.test(value)) strength += 20;
+            
+            // Znaki specjalne
+            if (/[^A-Za-z0-9]/.test(value)) strength += 20;
+
+            // Określanie koloru i tekstu
+            if (strength >= 80) {
+                color = '#28a745'; // zielony
+                passwordStrengthText.textContent = 'Silne hasło';
+            } else if (strength >= 60) {
+                color = '#ffc107'; // pomarańczowy
+                passwordStrengthText.textContent = 'Dobre hasło';
+            } else if (strength >= 40) {
+                color = '#fd7e14'; // żółty
+                passwordStrengthText.textContent = 'Średnie hasło';
+            } else if (strength >= 20) {
+                color = '#dc3545'; // czerwony
+                passwordStrengthText.textContent = 'Słabe hasło';
+            } else {
+                passwordStrengthText.textContent = 'Bardzo słabe hasło';
+            }
+
+            passwordStrength.style.width = strength + '%';
+            passwordStrength.style.backgroundColor = color;
+        });
+
+        // Sprawdzanie zgodności haseł
+        confirmPassword.addEventListener('input', function() {
+            if (this.value !== password.value) {
+                this.setCustomValidity('Hasła muszą być identyczne');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Blokada wysłania formularza jeśli hasła nie pasują
+        form.addEventListener('submit', function(event) {
+            if (password.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Hasła muszą być identyczne');
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+</body>
+</html>

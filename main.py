@@ -5,14 +5,16 @@ import logging
 import pandas as pd
 import requests
 import shutil
+import secrets
 from datetime import datetime, timedelta
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, UploadFile, File, Form, Depends, Cookie, status, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel
@@ -21,6 +23,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
+from passlib.context import CryptContext
+import sqlite3
+from contextlib import contextmanager
 
 # Ładowanie zmiennych środowiskowych
 load_dotenv()
@@ -54,6 +59,15 @@ error_logs = []
 # Ścieżka do zapisywania przetworzonych danych
 PROCESSED_DATA_PATH = "processed_data.json"
 
+# Ścieżka do bazy danych SQLite
+DATABASE_PATH = "pgb2_database.db"
+
+# Konfiguracja uwierzytelniania
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
+SESSION_COOKIE_NAME = "pgb2_session"
+SESSION_EXPIRE_DAYS = 30
+
 # Inicjalizacja danych przetworzonych
 processed_data = {
     "last_processed_date": None,
@@ -69,6 +83,189 @@ if os.path.exists(PROCESSED_DATA_PATH):
             processed_data = json.load(f)
     except Exception as e:
         logger.error(f"Błąd wczytywania danych przetworzonych: {e}")
+
+# Funkcje pomocnicze do zarządzania bazą danych
+@contextmanager
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def init_db():
+    """Inicjalizacja bazy danych - tworzenie tabel jeśli nie istnieją"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Tabela użytkowników
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            hashed_password TEXT NOT NULL,
+            full_name TEXT,
+            is_admin BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # Tabela sesji
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT UNIQUE NOT NULL,
+            user_id INTEGER NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+        ''')
+        
+        conn.commit()
+        
+        # Sprawdź czy istnieje domyślny użytkownik admin
+        cursor.execute("SELECT * FROM users WHERE username = 'admin'")
+        admin_user = cursor.fetchone()
+        
+        if not admin_user:
+            # Tworzenie domyślnego użytkownika admin z hasłem 'admin123'
+            hashed_password = pwd_context.hash("admin123")
+            cursor.execute(
+                "INSERT INTO users (username, email, hashed_password, full_name, is_admin) VALUES (?, ?, ?, ?, ?)",
+                ("admin", "admin@example.com", hashed_password, "Administrator", True)
+            )
+            conn.commit()
+            logger.info("Utworzono domyślne konto administratora (login: admin, hasło: admin123)")
+
+# Modele danych
+class User(BaseModel):
+    id: Optional[int] = None
+    username: str
+    email: str
+    full_name: Optional[str] = None
+    is_admin: bool = False
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    full_name: Optional[str] = None
+
+class UserInDB(User):
+    hashed_password: str
+
+class SessionData(BaseModel):
+    user_id: int
+    expires_at: datetime
+
+class LoginForm(BaseModel):
+    username: str
+    password: str
+    remember_me: bool = False
+
+# Funkcje uwierzytelniania
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def authenticate_user(username: str, password: str):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user_data = cursor.fetchone()
+        
+        if not user_data:
+            return False
+        
+        user = dict(user_data)
+        if not verify_password(password, user["hashed_password"]):
+            return False
+        
+        return User(
+            id=user["id"],
+            username=user["username"],
+            email=user["email"],
+            full_name=user["full_name"],
+            is_admin=bool(user["is_admin"])
+        )
+
+def create_session(user_id: int, expire_days: int = SESSION_EXPIRE_DAYS):
+    session_id = secrets.token_hex(32)
+    expires_at = datetime.now() + timedelta(days=expire_days)
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO sessions (session_id, user_id, expires_at) VALUES (?, ?, ?)",
+            (session_id, user_id, expires_at)
+        )
+        conn.commit()
+    
+    return session_id, expires_at
+
+def get_user_from_session(session_id: str):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT u.id, u.username, u.email, u.full_name, u.is_admin, s.expires_at 
+            FROM sessions s 
+            JOIN users u ON s.user_id = u.id 
+            WHERE s.session_id = ? AND s.expires_at > ?
+            """, 
+            (session_id, datetime.now())
+        )
+        result = cursor.fetchone()
+        
+        if not result:
+            return None
+        
+        user_data = dict(result)
+        return User(
+            id=user_data["id"],
+            username=user_data["username"],
+            email=user_data["email"],
+            full_name=user_data["full_name"],
+            is_admin=bool(user_data["is_admin"])
+        )
+
+def delete_session(session_id: str):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+# Middleware do autoryzacji
+async def get_current_user(request: Request) -> Optional[User]:
+    session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_id:
+        return None
+    
+    return get_user_from_session(session_id)
+
+# Zależność do wymagania zalogowanego użytkownika
+async def require_user(request: Request):
+    user = await get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?next=" + request.url.path, status_code=status.HTTP_302_FOUND)
+    return user
+
+# Zależność do wymagania uprawnień administratora
+async def require_admin(request: Request):
+    user = await get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?next=" + request.url.path, status_code=status.HTTP_302_FOUND)
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Brak wymaganych uprawnień"
+        )
+    return user
 
 
 class PGB2API:
@@ -722,14 +919,131 @@ scheduler.add_job(
 class ExcelDataUpdate(BaseModel):
     data: List[Dict[str, Any]]
 
+# Endpointy uwierzytelniania
 @app.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
-    """Główny endpoint - strona główna"""
+    """Strona główna - przekierowanie do dashboardu lub logowania"""
+    user = await get_current_user(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Endpoint główny - dashboard
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: str = "/dashboard"):
+    """Strona logowania"""
+    user = await get_current_user(request)
+    if user:
+        return RedirectResponse(url=next, status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse("login.html", {"request": request, "next": next})
+
+@app.post("/login")
+async def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    remember_me: bool = Form(False),
+    next: str = Form("/dashboard")
+):
+    """Endpoint do logowania"""
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowa nazwa użytkownika lub hasło",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Ustaw okres ważności sesji
+    expire_days = 30 if remember_me else 1
+    
+    # Utwórz sesję
+    session_id, expires_at = create_session(user.id, expire_days)
+    
+    # Ustaw ciasteczko sesji
+    cookie_expiry = expires_at if remember_me else None  # None = cookie sesyjne
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        max_age=expire_days * 24 * 60 * 60 if remember_me else None,
+        expires=cookie_expiry,
+        secure=False  # Ustaw na True w środowisku produkcyjnym z HTTPS
+    )
+    
+    # Przekieruj do żądanej strony lub na dashboard
+    return RedirectResponse(url=next, status_code=status.HTTP_302_FOUND)
+
+@app.get("/logout")
+async def logout(response: Response, request: Request):
+    """Wylogowanie użytkownika"""
+    session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    if session_id:
+        delete_session(session_id)
+    
+    # Usuń ciasteczko sesji
+    response.delete_cookie(SESSION_COOKIE_NAME)
+    
+    # Przekieruj na stronę logowania
+    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    """Strona rejestracji"""
+    user = await get_current_user(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@app.post("/register")
+async def register(
+    response: Response,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    full_name: str = Form(None)
+):
+    """Endpoint do rejestracji nowego użytkownika"""
+    # Sprawdź, czy użytkownik już istnieje
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ? OR email = ?", (username, email))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Użytkownik o podanej nazwie użytkownika lub adresie e-mail już istnieje"
+            )
+        
+        # Dodaj nowego użytkownika
+        hashed_password = get_password_hash(password)
+        cursor.execute(
+            "INSERT INTO users (username, email, hashed_password, full_name) VALUES (?, ?, ?, ?)",
+            (username, email, hashed_password, full_name)
+        )
+        conn.commit()
+        
+        # Pobierz ID utworzonego użytkownika
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        user_id = cursor.fetchone()["id"]
+    
+    # Utwórz sesję i zaloguj użytkownika
+    session_id, expires_at = create_session(user_id)
+    
+    # Ustaw ciasteczko sesji
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        max_age=24 * 60 * 60,  # 1 dzień
+        secure=False  # Ustaw na True w środowisku produkcyjnym z HTTPS
+    )
+    
+    # Przekieruj na dashboard
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
+# Endpoint główny - dashboard (wymaga logowania)
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
+async def dashboard(request: Request, user: User = Depends(require_user)):
     """Główny endpoint - dashboard z statystykami i wykresami"""
     try:
         # Wczytanie danych z Excel, jeśli dostępne
@@ -761,7 +1075,8 @@ async def dashboard(request: Request):
             "stats": stats,
             "logs": error_logs[-30:],  # Ostatnie 30 logów
             "processed_data": processed_data,
-            "sent_reports": sent_reports[-10:]  # Ostatnie 10 raportów
+            "sent_reports": sent_reports[-10:],  # Ostatnie 10 raportów
+            "user": user
         })
     except Exception as e:
         error_msg = f"Błąd podczas generowania dashboardu: {str(e)}"
@@ -773,9 +1088,9 @@ async def dashboard(request: Request):
         })
 
 
-# Endpoint do ręcznego uruchomienia wysyłania raportu
+# Endpoint do ręcznego uruchomienia wysyłania raportu (wymaga logowania)
 @app.post("/trigger-report")
-async def trigger_report(background_tasks: BackgroundTasks):
+async def trigger_report(background_tasks: BackgroundTasks, user: User = Depends(require_user)):
     """Endpoint do ręcznego uruchomienia wysyłania raportu"""
     try:
         background_tasks.add_task(send_daily_report)
@@ -787,9 +1102,9 @@ async def trigger_report(background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Endpoint zwracający dane w formacie JSON
+# Endpoint zwracający dane w formacie JSON (wymaga logowania)
 @app.get("/api/stats")
-async def get_stats():
+async def get_stats(user: User = Depends(require_user)):
     """Endpoint zwracający statystyki w formacie JSON"""
     try:
         return {
@@ -804,9 +1119,9 @@ async def get_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Endpoint zwracający dane Excel w formacie JSON
+# Endpoint zwracający dane Excel w formacie JSON (wymaga logowania)
 @app.get("/api/excel-data")
-async def get_excel_data():
+async def get_excel_data(user: User = Depends(require_user)):
     """Endpoint zwracający dane z Excela w formacie JSON"""
     try:
         processor = ExcelProcessor()
@@ -823,9 +1138,9 @@ async def get_excel_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Nowy endpoint do pobierania danych wykresów
+# Endpoint do pobierania danych wykresów (wymaga logowania)
 @app.get("/api/chart-data")
-async def get_chart_data(period: str = "month"):
+async def get_chart_data(period: str = "month", user: User = Depends(require_user)):
     """
     Endpoint zwracający dane wykresów w formacie JSON
     
@@ -852,9 +1167,13 @@ async def get_chart_data(period: str = "month"):
         error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "api"})
         raise HTTPException(status_code=500, detail=str(e))
 
-# Endpoint do wgrywania nowego pliku Excel
+# Endpoint do wgrywania nowego pliku Excel (wymaga logowania)
 @app.post("/api/upload-excel")
-async def upload_excel_file(file: UploadFile = File(...), replace: bool = Form(True)):
+async def upload_excel_file(
+    file: UploadFile = File(...), 
+    replace: bool = Form(True),
+    user: User = Depends(require_user)
+):
     """
     Endpoint do wgrywania nowego pliku Excel
     
@@ -936,9 +1255,13 @@ async def upload_excel_file(file: UploadFile = File(...), replace: bool = Form(T
             
         return {"status": "error", "message": f"Błąd podczas wgrywania pliku: {str(e)}"}
 
-# Endpoint do aktualizacji danych Excel
+# Endpoint do aktualizacji danych Excel (wymaga logowania)
 @app.post("/api/update-excel-data")
-async def update_excel_data(data_update: ExcelDataUpdate, background_tasks: BackgroundTasks):
+async def update_excel_data(
+    data_update: ExcelDataUpdate, 
+    background_tasks: BackgroundTasks,
+    user: User = Depends(require_user)
+):
     """
     Endpoint do aktualizacji danych w pliku Excel
     
@@ -999,6 +1322,140 @@ async def update_excel_data(data_update: ExcelDataUpdate, background_tasks: Back
         error_logs.append({"timestamp": datetime.now().isoformat(), "message": f"Błąd podczas aktualizacji danych Excel: {str(e)}", "type": "api"})
         return {"status": "error", "message": f"Błąd podczas aktualizacji danych: {str(e)}"}
 
+# Zarządzanie użytkownikami - tylko dla administratorów
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users(request: Request, user: User = Depends(require_admin)):
+    """Panel zarządzania użytkownikami (tylko dla administratorów)"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users")
+        users = [dict(row) for row in cursor.fetchall()]
+    
+    return templates.TemplateResponse("admin_users.html", {
+        "request": request,
+        "users": users,
+        "user": user
+    })
+
+@app.post("/admin/users/add")
+async def admin_add_user(
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    full_name: str = Form(None),
+    is_admin: bool = Form(False),
+    user: User = Depends(require_admin)
+):
+    """Dodawanie nowego użytkownika przez administratora"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = ? OR email = ?", (username, email))
+            if cursor.fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Użytkownik o podanej nazwie użytkownika lub adresie e-mail już istnieje"
+                )
+            
+            hashed_password = get_password_hash(password)
+            cursor.execute(
+                "INSERT INTO users (username, email, hashed_password, full_name, is_admin) VALUES (?, ?, ?, ?, ?)",
+                (username, email, hashed_password, full_name, is_admin)
+            )
+            conn.commit()
+        
+        return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/users/{user_id}/delete")
+async def admin_delete_user(user_id: int, user: User = Depends(require_admin)):
+    """Usuwanie użytkownika przez administratora"""
+    try:
+        # Sprawdź, czy nie usuwamy samego siebie
+        if user_id == user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nie możesz usunąć własnego konta"
+            )
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Usuń sesje użytkownika
+            cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            
+            # Usuń użytkownika
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            conn.commit()
+        
+        return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Panel profilu użytkownika
+@app.get("/profile", response_class=HTMLResponse)
+async def user_profile(request: Request, user: User = Depends(require_user)):
+    """Panel profilu użytkownika"""
+    return templates.TemplateResponse("profile.html", {
+        "request": request,
+        "user": user
+    })
+
+@app.post("/profile/update")
+async def update_profile(
+    full_name: str = Form(None),
+    email: str = Form(...),
+    current_password: str = Form(None),
+    new_password: str = Form(None),
+    user: User = Depends(require_user)
+):
+    """Aktualizacja profilu użytkownika"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Sprawdź czy email jest unikalny
+            if email != user.email:
+                cursor.execute("SELECT id FROM users WHERE email = ? AND id != ?", (email, user.id))
+                if cursor.fetchone():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Podany adres e-mail jest już używany przez innego użytkownika"
+                    )
+            
+            # Aktualizuj dane podstawowe
+            cursor.execute(
+                "UPDATE users SET full_name = ?, email = ? WHERE id = ?",
+                (full_name, email, user.id)
+            )
+            
+            # Jeśli podano hasła, zmień hasło
+            if current_password and new_password:
+                # Pobierz aktualne hasło
+                cursor.execute("SELECT hashed_password FROM users WHERE id = ?", (user.id,))
+                current_hashed = cursor.fetchone()["hashed_password"]
+                
+                # Sprawdź poprawność aktualnego hasła
+                if not verify_password(current_password, current_hashed):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Nieprawidłowe aktualne hasło"
+                    )
+                
+                # Aktualizuj hasło
+                hashed_password = get_password_hash(new_password)
+                cursor.execute(
+                    "UPDATE users SET hashed_password = ? WHERE id = ?",
+                    (hashed_password, user.id)
+                )
+            
+            conn.commit()
+        
+        return RedirectResponse(url="/profile", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Funkcja ponownego przetwarzania danych po aktualizacji
 def regenerate_processed_data():
     """Funkcja regenerująca przetworzone dane po aktualizacji Excel"""
@@ -1019,6 +1476,9 @@ def regenerate_processed_data():
 @app.on_event("startup")
 async def startup_event():
     """Funkcja uruchamiana podczas startu aplikacji"""
+    # Inicjalizacja bazy danych
+    init_db()
+    
     # Uruchomienie harmonogramu
     scheduler.start()
     logger.info("Aplikacja uruchomiona, harmonogram zadań aktywny")
@@ -1039,6 +1499,9 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     print(f"Uruchamianie aplikacji PGB2 Report Sender na porcie {port}...")
     print(f"Nasłuchiwanie na 127.0.0.1:{port}")
+    
+    # Inicjalizacja bazy danych
+    init_db()
     
     # Uruchomienie harmonogramu
     scheduler.start()
