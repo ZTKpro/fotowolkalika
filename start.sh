@@ -1,5 +1,5 @@
 #!/bin/bash
-# Skrypt startowy dla aplikacji PGB2 Report Sender na platformie Render
+# Skrypt startowy dla aplikacji PowerWise na platformie Render
 
 # Sprawdź i utwórz katalogi jeśli nie istnieją
 mkdir -p templates

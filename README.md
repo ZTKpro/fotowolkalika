@@ -1,4 +1,4 @@
-# PGB2 Report Sender
+# PowerWise
 
 Aplikacja webowa do automatycznego generowania i wysyłania raportów z pliku Excel do systemu PGB2 poprzez API. Aplikacja zawiera dashboard z wizualizacją danych i jest przystosowana do wdrożenia na platformie Render.
 
