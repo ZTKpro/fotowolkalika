@@ -663,20 +663,20 @@
         padding: 0.5rem 1rem;
         transition: all 0.3s ease;
       }
-      
+
       .dropdown-item:hover {
         background-color: rgba(40, 66, 177, 0.1);
         transform: translateX(5px);
       }
-      
+
       .dropdown-item.text-danger:hover {
         background-color: rgba(220, 53, 69, 0.1);
       }
-      
+
       .dropdown-menu {
         padding: 0.5rem;
       }
-      
+
       .dropdown-divider {
         margin: 0.5rem;
       }
@@ -749,78 +749,64 @@
       <!-- NOWY NAGŁÓWEK Z MENU UŻYTKOWNIKA -->
       <header>
         <div class="row align-items-center">
-          <div class="col-md-8">
+          <div class="col-md-7">
             <div class="logo-container">
-              <svg
-                width="50"
+              <img
+                src="static/img/logo.png"
+                alt="PowerWise Logo"
+                width="auto"
                 height="50"
-                viewBox="0 0 300 100"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <defs>
-                  <linearGradient
-                    id="logoGradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="0%"
-                  >
-                    <stop offset="0%" style="stop-color: #10d9de" />
-                    <stop offset="50%" style="stop-color: #2842b1" />
-                    <stop offset="100%" style="stop-color: #7510f7" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M10,50 Q50,20 80,40 T150,30 T210,10"
-                  stroke="url(#logoGradient)"
-                  stroke-width="8"
-                  fill="transparent"
-                  stroke-linecap="round"
-                />
-                <rect
-                  x="220"
-                  y="0"
-                  width="30"
-                  height="30"
-                  rx="5"
-                  fill="#7510F7"
-                />
-                <text
-                  x="225"
-                  y="22"
-                  fill="white"
-                  font-family="Arial"
-                  font-weight="bold"
-                  font-size="18"
-                >
-                  PGB2
-                </text>
-              </svg>
-              <h1 class="logo-text">PowerWise</h1>
+              />
             </div>
-            <p class="header-subtitle">
-              System automatycznego wysyłania raportów do PGB2
-            </p>
           </div>
-          <div class="col-md-4 text-end">
-            <div class="d-flex align-items-center justify-content-end">
-              <button id="refreshBtn" class="btn btn-outline-primary me-2">
-                <i class="bi bi-arrow-clockwise"></i> Odśwież dane
+          <div class="col-md-5 text-end">
+            <div
+              class="d-flex align-items-center justify-content-end"
+              style="gap: 10px"
+            >
+              <button id="refreshBtn" class="btn btn-outline-primary me-1">
+                <i class="bi bi-arrow-clockwise"></i> Odśwież
               </button>
-              <button id="triggerReportBtn" class="btn btn-success me-2">
-                <i class="bi bi-send"></i> Wyślij raport
+              <button id="triggerReportBtn" class="btn btn-success me-1">
+                <i class="bi bi-send"></i> Wyślij
               </button>
               <div class="dropdown">
-                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button
+                  class="btn btn-outline-primary dropdown-toggle"
+                  type="button"
+                  id="userDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
                   <i class="bi bi-person-circle me-1"></i> {{ user.username }}
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);">
-                  <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>Profil</a></li>
+                <ul
+                  class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="userDropdown"
+                  style="
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                  "
+                >
+                  <li>
+                    <a class="dropdown-item" href="/profile"
+                      ><i class="bi bi-person me-2"></i>Profil</a
+                    >
+                  </li>
                   {% if user.is_admin %}
-                  <li><a class="dropdown-item" href="/admin/users"><i class="bi bi-shield-lock me-2"></i>Panel administratora</a></li>
+                  <li>
+                    <a class="dropdown-item" href="/admin/users"
+                      ><i class="bi bi-shield-lock me-2"></i>Panel
+                      administratora</a
+                    >
+                  </li>
                   {% endif %}
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Wyloguj</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="/logout"
+                      ><i class="bi bi-box-arrow-right me-2"></i>Wyloguj</a
+                    >
+                  </li>
                 </ul>
               </div>
             </div>

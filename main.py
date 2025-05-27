@@ -43,6 +43,7 @@ logger = logging.getLogger("PGB2ReportSender")
 
 # Inicjalizacja FastAPI
 app = FastAPI(title="PowerWise", description="Aplikacja do automatycznego wysyłania raportów do systemu PGB2")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Konfiguracja szablonów
 templates = Jinja2Templates(directory="templates")

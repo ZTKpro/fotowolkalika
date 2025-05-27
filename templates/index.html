@@ -920,57 +920,13 @@
   <body>
     <!-- Loading Screen -->
     <div class="loading-container" id="loadingScreen">
-      <svg
-        class="loading-logo"
-        viewBox="0 0 300 100"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color: #10d9de" />
-            <stop offset="50%" style="stop-color: #2842b1" />
-            <stop offset="100%" style="stop-color: #7510f7" />
-          </linearGradient>
-        </defs>
-        <text
-          x="10"
-          y="65"
-          fill="#0e1e40"
-          font-family="Arial"
-          font-weight="bold"
-          font-size="40"
-        >
-          Power
-        </text>
-        <text
-          x="130"
-          y="65"
-          fill="#0e1e40"
-          font-family="Arial"
-          font-weight="bold"
-          font-size="40"
-        >
-          Wise
-        </text>
-        <path
-          d="M10,80 Q50,40 80,70 T150,60 T210,40"
-          stroke="url(#logoGradient)"
-          stroke-width="8"
-          fill="transparent"
-          stroke-linecap="round"
-        />
-        <rect x="220" y="20" width="50" height="50" rx="10" fill="#7510F7" />
-        <text
-          x="230"
-          y="55"
-          fill="white"
-          font-family="Arial"
-          font-weight="bold"
-          font-size="30"
-        >
-          AI
-        </text>
-      </svg>
+      <img
+        src="static/img/logo.png"
+        alt="PowerWise Logo"
+        width="auto"
+        height="50"
+        style="margin-bottom: 25px"
+      />
       <div class="loading-bar-container">
         <div class="loading-bar" id="loadingBar"></div>
       </div>
@@ -980,47 +936,13 @@
     <!-- Header -->
     <header>
       <div class="logo">
-        <svg
-          width="50"
-          height="50"
-          viewBox="0 0 300 100"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient
-              id="navLogoGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="0%"
-            >
-              <stop offset="0%" style="stop-color: #10d9de" />
-              <stop offset="50%" style="stop-color: #2842b1" />
-              <stop offset="100%" style="stop-color: #7510f7" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M10,50 Q50,20 80,40 T150,30 T210,10"
-            stroke="url(#navLogoGradient)"
-            stroke-width="8"
-            fill="transparent"
-            stroke-linecap="round"
-          />
-          <rect x="220" y="0" width="30" height="30" rx="5" fill="#7510F7" />
-          <text
-            x="225"
-            y="22"
-            fill="white"
-            font-family="Arial"
-            font-weight="bold"
-            font-size="18"
-          >
-            AI
-          </text>
-        </svg>
-        <span class="logo-text"
-          >Power<span class="logo-accent">Wise</span></span
-        >
+        <img
+          src="static/img/logo.png"
+          alt="PowerWise Logo"
+          width="auto"
+          height="40"
+          style="margin-bottom: 25px"
+        />
       </div>
       <div class="nav-links">
         <a href="#home" class="nav-link">Strona główna</a>
@@ -1511,52 +1433,12 @@
       <div class="footer-container">
         <div class="footer-column">
           <div class="footer-logo">
-            <svg
-              width="40"
+            <img
+              src="static/img/logo-white.png"
+              alt="PowerWise Logo"
+              width="auto"
               height="40"
-              viewBox="0 0 300 100"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient
-                  id="footerLogoGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" style="stop-color: #10d9de" />
-                  <stop offset="50%" style="stop-color: #2842b1" />
-                  <stop offset="100%" style="stop-color: #7510f7" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M10,50 Q50,20 80,40 T150,30 T210,10"
-                stroke="url(#footerLogoGradient)"
-                stroke-width="8"
-                fill="transparent"
-                stroke-linecap="round"
-              />
-              <rect
-                x="220"
-                y="0"
-                width="30"
-                height="30"
-                rx="5"
-                fill="#7510F7"
-              />
-              <text
-                x="225"
-                y="22"
-                fill="white"
-                font-family="Arial"
-                font-weight="bold"
-                font-size="18"
-              >
-                AI
-              </text>
-            </svg>
-            <span class="footer-logo-text">PowerWise</span>
+            />
           </div>
           <p class="footer-description">
             Platforma SaaS do automatycznego pobierania, analizy i raportowania
