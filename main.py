@@ -445,7 +445,7 @@ class PGB2API:
 
     def send_plan(self, plan_type, unit_type, xml_data):
         """
-        Wysłanie planu do API PGB2 z lepszą obsługą błędów
+        Wysłanie planu do API PGB2 z poprawną interpretacją odpowiedzi
         
         Parametry:
         plan_type (str): Typ planu ('SHORT' lub 'LONG')
@@ -485,7 +485,11 @@ class PGB2API:
                 result = response.json()
                 logger.info(f"Odpowiedź serwera: {result}")
                 
-                if "error" in result and result["error"]:
+                # POPRAWIONA LOGIKA: zgodnie z dokumentacją PGB2
+                # Jeśli error jest pustym stringiem lub brak error, to sukces
+                # Jeśli error ma wartość (nie jest pustym stringiem), to błąd
+                if "error" in result and result["error"] and result["error"].strip():
+                    # Błąd - error ma niepustą wartość
                     error_msg = f"Błąd wysyłania planu (kod: {result.get('error', 'unknown')}): {result.get('message', 'Nieznany błąd')}"
                     if "details" in result and result["details"]:
                         error_msg += f". Szczegóły: {result['details']}"
@@ -497,7 +501,8 @@ class PGB2API:
                         "error_code": result.get('error', 'unknown')
                     })
                     return False, error_msg
-                    
+                
+                # Sukces - error jest pusty lub brak error
                 file_uuid = result.get("message", "")
                 if not file_uuid:
                     error_msg = "Nie otrzymano UUID pliku z serwera"
@@ -539,9 +544,10 @@ class PGB2API:
             except:
                 pass
 
+
     def check_plan_status(self, file_uuid):
         """
-        Sprawdzenie statusu przetwarzania planu
+        Sprawdzenie statusu przetwarzania planu z poprawną interpretacją odpowiedzi
         
         Parametry:
         file_uuid (str): Identyfikator pliku zwrócony przez API
@@ -565,14 +571,18 @@ class PGB2API:
             response.raise_for_status()
             
             result = response.json()
-            if "error" in result and result["error"]:
+            logger.debug(f"Odpowiedź statusu: {result}")
+            
+            # POPRAWIONA LOGIKA: zgodnie z dokumentacją PGB2
+            # Jeśli error jest pustym stringiem lub brak error, to sukces
+            if "error" in result and result["error"] and result["error"].strip():
                 error_msg = f"Błąd sprawdzania statusu: {result['message']}"
                 logger.error(error_msg)
                 error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "status"})
                 return False, result["message"]
                 
             status = result["message"]
-            logger.info(f"Status planu: {status}")
+            logger.debug(f"Status planu: {status}")
             return True, status
             
         except Exception as e:
@@ -656,7 +666,54 @@ class ExcelProcessor:
             error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "excel"})
             return False
 
+    def fix_time_resolution(self, data):
+        """
+        Automatyczna naprawa rozdzielczości czasowej dla danych godzinowych
         
+        Parametry:
+        data (DataFrame): Dane do naprawienia
+        
+        Zwraca:
+        DataFrame: Naprawione dane
+        """
+        try:
+            if data.empty or 'DATA' not in data.columns:
+                return data
+            
+            # Sortowanie danych według daty
+            data = data.sort_values('DATA').reset_index(drop=True)
+            
+            # Zaokrąglenie wszystkich czasów do pełnych godzin
+            data['DATA'] = data['DATA'].dt.floor('H')
+            
+            # Usunięcie duplikatów po zaokrągleniu (zachowanie pierwszego rekordu)
+            data = data.drop_duplicates(subset=['DATA'], keep='first')
+            
+            # Tworzenie pełnego zakresu godzinowego
+            if len(data) > 0:
+                min_date = data['DATA'].min()
+                max_date = data['DATA'].max()
+                
+                # Stwórz pełny zakres godzinowy
+                full_range = pd.date_range(start=min_date, end=max_date, freq='H')
+                
+                # Stwórz DataFrame z pełnym zakresem
+                full_df = pd.DataFrame({'DATA': full_range})
+                
+                # Połącz z istniejącymi danymi
+                data = full_df.merge(data, on='DATA', how='left')
+                
+                # Wypełnij brakujące wartości liczbowe zerami
+                numeric_columns = data.select_dtypes(include=[np.number]).columns
+                data[numeric_columns] = data[numeric_columns].fillna(0)
+            
+            logger.info(f"Naprawiono rozdzielczość czasową: {len(data)} rekordów")
+            return data
+            
+        except Exception as e:
+            logger.error(f"Błąd podczas naprawiania rozdzielczości czasowej: {e}")
+            return data
+    
     def validate_excel_data(self, days_ahead=9):
         """
         Walidacja danych Excel przed generowaniem XML z uwzględnieniem konwersji kW->MW
@@ -689,7 +746,7 @@ class ExcelProcessor:
             return False, f"Brak danych prognozy na następne {days_ahead} dni (od {today.strftime('%Y-%m-%d')} do {end_date.strftime('%Y-%m-%d')})"
         
         # SPRAWDŹ KOLEJNOŚĆ DANYCH PRZED NAPRAWĄ
-        logger.info(f"=== STRUKTURA DANYCH PRZED NAPRAWĄ ===")
+        logger.info(f"=== STRUKTURA DANYCH PRZED NAPRAWA ===")
         logger.info(f"Liczba rekordów: {len(forecast_data)}")
         if len(forecast_data) >= 3:
             logger.info(f"Pierwsze 3 daty:")
@@ -698,10 +755,10 @@ class ExcelProcessor:
         
         # Sprawdź czy dane są już posortowane
         is_sorted = forecast_data['DATA'].is_monotonic_increasing
-        logger.info(f"Czy dane są posortowane chronologicznie: {'✅ TAK' if is_sorted else '❌ NIE'}")
+        logger.info(f"Czy dane są posortowane chronologicznie: {'TAK' if is_sorted else 'NIE'}")
         
         if not is_sorted:
-            logger.warning("⚠️  DANE NIE SĄ POSORTOWANE - będą naprawione automatycznie")
+            logger.warning("DANE NIE SA POSORTOWANE - będą naprawione automatycznie")
         
         # Automatyczne naprawianie danych czasowych przed walidacją
         logger.info("Próba automatycznego naprawienia danych przed walidacją...")
@@ -723,19 +780,19 @@ class ExcelProcessor:
         logger.info(f"Pokrycie czasowe: {len(forecast_data)}/{expected_records} rekordów ({coverage_percent:.1f}%)")
         
         if coverage_percent < 50:
-            logger.warning(f"⚠️  Niskie pokrycie czasowe: {coverage_percent:.1f}%")
+            logger.warning(f"Niskie pokrycie czasowe: {coverage_percent:.1f}%")
         elif coverage_percent < 100:
-            logger.info(f"ℹ️  Częściowe pokrycie czasowe: {coverage_percent:.1f}% - dane mogą być niekompletne")
+            logger.info(f"Częściowe pokrycie czasowe: {coverage_percent:.1f}% - dane mogą być niekompletne")
         else:
-            logger.info(f"✅ Pełne pokrycie czasowe: {coverage_percent:.1f}%")
+            logger.info(f"Pełne pokrycie czasowe: {coverage_percent:.1f}%")
         
         # Sprawdź czy dane zaczynają się od dzisiaj czy od przyszłości
         time_until_first = forecast_data['DATA'].iloc[0] - today
         if time_until_first.total_seconds() > 3600:  # Więcej niż 1 godzina od dzisiaj
             hours_ahead = time_until_first.total_seconds() / 3600
-            logger.info(f"ℹ️  Dane zaczynają się {hours_ahead:.1f}h od dzisiaj")
+            logger.info(f"Dane zaczynają się {hours_ahead:.1f}h od dzisiaj")
         else:
-            logger.info(f"✅ Dane zaczynają się od dzisiaj/niedawno")
+            logger.info(f"Dane zaczynają się od dzisiaj/niedawno")
         
         # WALIDACJA TYLKO PRZEFILTROWANYCH DANYCH
         # Sprawdź format wartości liczbowych
@@ -837,7 +894,7 @@ class ExcelProcessor:
                 
                 return False, f"Dane nie są w prawidłowej rozdzielczości godzinowej nawet po automatycznym naprawieniu. Znaleziono {len(invalid_diffs)} nieprawidłowych odstępów czasowych. Sprawdź logi dla szczegółów."
             else:
-                logger.info("✅ Rozdzielczość czasowa jest prawidłowa")
+                logger.info("Rozdzielczość czasowa jest prawidłowa")
             
             # Sprawdź czy wszystkie godziny są pełne (minuty = 0)
             non_hour_timestamps = forecast_data[forecast_data['DATA'].dt.minute != 0]
@@ -865,7 +922,7 @@ class ExcelProcessor:
         
         # Informacja o pokryciu
         if coverage_percent < 100:
-            logger.info(f"ℹ️  Uwaga: Dane pokrywają {coverage_percent:.1f}% oczekiwanego okresu, ale to wystarczy do generowania raportu")
+            logger.info(f"Uwaga: Dane pokrywają {coverage_percent:.1f}% oczekiwanego okresu, ale to wystarczy do generowania raportu")
         
         return True, "Dane są poprawne"
 
@@ -899,12 +956,13 @@ class ExcelProcessor:
     def generate_xml_for_mwe_short(self, data=None):
         """
         Generuje XML dla planu krótkoterminowego MWE zgodny z formatem PGB2
+        Zgodnie z dokumentacją API PGB2 i przykładem XML
         
         Parametry:
         data (DataFrame): Opcjonalnie dataframe z danymi do przetworzenia
         
         Zwraca:
-        str: Wygenerowany XML
+        str: Wygenerowany XML zgodny z dokumentacją PGB2
         """
         if data is None:
             data = self.get_forecast_data()
@@ -917,58 +975,61 @@ class ExcelProcessor:
             
         try:
             # Sortowanie danych według daty
-            data = data.sort_values('DATA')
+            data = data.sort_values('DATA').reset_index(drop=True)
             
             # ID modułu wytwarzania energii (MWE) z env
             mwe_id = os.getenv("MWE_ID", "_8eda81ec-90eb-46f9-abc8-7071ba98a5b1")
             
-            # Okres czasowy dla całego dokumentu
+            # Okres czasowy dla całego dokumentu w UTC
             min_date = data['DATA'].min()
             max_date = data['DATA'].max()
             
-            # Format UTC zgodny z przykładem: RRRR-MM-DDTHH:00Z
+            # Konwersja na UTC - dokumentacja wymaga formatu UTC: YYYY-MM-DDTHH:MMZ
+            # Zakładamy, że dane są w czasie lokalnym
             schedule_start = min_date.strftime("%Y-%m-%dT%H:00Z")
             schedule_end = (max_date + timedelta(hours=1)).strftime("%Y-%m-%dT%H:00Z")
             
-            # Tworzenie korzenia XML - PlannedResourceSchedule
+            # Tworzenie korzenia XML - PlannedResourceSchedule zgodnie z dokumentacją
             root = ET.Element("PlannedResourceSchedule")
             
-            # Typ planu - A71 dla SHORT/MWE
+            # Typ planu - A71 dla planu generacji MWE (SHORT/MWE)
             ET.SubElement(root, "type").text = "A71"
             
-            # Główny okres czasowy
+            # Główny okres czasowy zgodny z dokumentacją
             schedule_period = ET.SubElement(root, "schedule_Period.timeInterval")
             ET.SubElement(schedule_period, "start").text = schedule_start
             ET.SubElement(schedule_period, "end").text = schedule_end
             
             # Zapisz informacje o przetworzonych wierszach
             processed_rows = []
-            series_counter = 1
             
-            # TimeSeries dla PPLAN (businessType = A01)
+            # PPLAN Series - businessType A01 zgodnie z dokumentacją
             pplan_series = ET.SubElement(root, "PlannedResource_TimeSeries")
-            ET.SubElement(pplan_series, "mRID").text = str(series_counter)  # Unikalny numeryczny ID
-            ET.SubElement(pplan_series, "businessType").text = "A01"  # A01 = PPLAN
-            ET.SubElement(pplan_series, "measurement_Unit.name").text = "MAW"  # MAW = MW
-            ET.SubElement(pplan_series, "registeredResource.mRID").text = mwe_id  # Właściwy MWE ID
             
-            # Okres dla PPLAN
+            # mRID dla PPLAN - używamy MWE ID zgodnie z przykładem
+            ET.SubElement(pplan_series, "mRID").text = mwe_id
+            ET.SubElement(pplan_series, "businessType").text = "A01"  # A01 = generacja planowana (PPLAN)
+            ET.SubElement(pplan_series, "measurement_Unit.name").text = "MAW"  # MAW = megawaty aktywne
+            ET.SubElement(pplan_series, "registeredResource.mRID").text = mwe_id
+            
+            # Okres czasowy dla PPLAN
             pplan_period = ET.SubElement(pplan_series, "Series_Period")
             pplan_timeInterval = ET.SubElement(pplan_period, "timeInterval")
             ET.SubElement(pplan_timeInterval, "start").text = schedule_start
             ET.SubElement(pplan_timeInterval, "end").text = schedule_end
             ET.SubElement(pplan_period, "resolution").text = "PT1H"  # Rozdzielczość godzinowa
             
-            # Punkty PPLAN
-            position = 1
-            for i, row in data.iterrows():
+            # Punkty danych PPLAN
+            for position, (i, row) in enumerate(data.iterrows(), start=1):
                 point = ET.SubElement(pplan_period, "Point")
                 ET.SubElement(point, "position").text = str(position)
                 
-                # Konwersja z kW na MW (dzielenie przez 1000) i format z kropką
-                pplan_value_kw = row.get('Produkcja PV (PPLAN)', 0) or 0
-                pplan_value_mw = float(pplan_value_kw) / 1000.0  # kW -> MW
-                pplan_formatted = f"{pplan_value_mw:.3f}"  # Format z 3 miejscami po przecinku
+                # Konwersja z kW na MW (dzielenie przez 1000) z formatem zgodnym z przykładem
+                pplan_value_kw = float(row.get('Produkcja PV (PPLAN)', 0) or 0)
+                pplan_value_mw = pplan_value_kw / 1000.0  # kW -> MW
+                
+                # Format zgodny z przykładem: maksymalnie 3 miejsca po przecinku
+                pplan_formatted = f"{pplan_value_mw:.3f}"
                 
                 ET.SubElement(point, "quantity").text = pplan_formatted
                 
@@ -978,47 +1039,46 @@ class ExcelProcessor:
                     "pplan_mw": pplan_value_mw,
                     "position": position
                 })
-                position += 1
             
-            # TimeSeries dla PAUTO (businessType = P01) - tylko jeśli są wartości
-            has_pauto_values = data['Nadwyżki (PAUTO)'].notna().any() and (data['Nadwyżki (PAUTO)'] != 0).any()
-            
-            if has_pauto_values:
-                series_counter += 1
-                pauto_series = ET.SubElement(root, "PlannedResource_TimeSeries")
-                ET.SubElement(pauto_series, "mRID").text = str(series_counter)  # Następny unikalny ID
-                ET.SubElement(pauto_series, "businessType").text = "P01"  # P01 = PAUTO
-                ET.SubElement(pauto_series, "measurement_Unit.name").text = "MAW"  # MAW = MW
-                ET.SubElement(pauto_series, "registeredResource.mRID").text = mwe_id  # Właściwy MWE ID
+            # PAUTO Series - businessType P01 (tylko jeśli są wartości różne od zera)
+            if 'Nadwyżki (PAUTO)' in data.columns:
+                # Sprawdź czy są rzeczywiste wartości PAUTO
+                has_pauto_values = data['Nadwyżki (PAUTO)'].notna().any() and (data['Nadwyżki (PAUTO)'] != 0).any()
                 
-                # Okres dla PAUTO
-                pauto_period = ET.SubElement(pauto_series, "Series_Period")
-                pauto_timeInterval = ET.SubElement(pauto_period, "timeInterval")
-                ET.SubElement(pauto_timeInterval, "start").text = schedule_start
-                ET.SubElement(pauto_timeInterval, "end").text = schedule_end
-                ET.SubElement(pauto_period, "resolution").text = "PT1H"  # Rozdzielczość godzinowa
-                
-                # Punkty PAUTO
-                position = 1
-                for i, row in data.iterrows():
-                    point = ET.SubElement(pauto_period, "Point")
-                    ET.SubElement(point, "position").text = str(position)
+                if has_pauto_values:
+                    pauto_series = ET.SubElement(root, "PlannedResource_TimeSeries")
                     
-                    # Konwersja z kW na MW (dzielenie przez 1000) i format z kropką
-                    pauto_value_kw = row.get('Nadwyżki (PAUTO)', 0) or 0
-                    pauto_value_mw = float(pauto_value_kw) / 1000.0  # kW -> MW
-                    pauto_formatted = f"{pauto_value_mw:.3f}"  # Format z 3 miejscami po przecinku
+                    # mRID dla PAUTO - taki sam jak MWE ID zgodnie z dokumentacją
+                    ET.SubElement(pauto_series, "mRID").text = mwe_id
+                    ET.SubElement(pauto_series, "businessType").text = "P01"  # P01 = automatyczna generacja (PAUTO)
+                    ET.SubElement(pauto_series, "measurement_Unit.name").text = "MAW"  # MAW = megawaty aktywne
+                    ET.SubElement(pauto_series, "registeredResource.mRID").text = mwe_id
                     
-                    ET.SubElement(point, "quantity").text = pauto_formatted
+                    # Okres czasowy dla PAUTO
+                    pauto_period = ET.SubElement(pauto_series, "Series_Period")
+                    pauto_timeInterval = ET.SubElement(pauto_period, "timeInterval")
+                    ET.SubElement(pauto_timeInterval, "start").text = schedule_start
+                    ET.SubElement(pauto_timeInterval, "end").text = schedule_end
+                    ET.SubElement(pauto_period, "resolution").text = "PT1H"
                     
-                    # Dodanie wartości PAUTO do przetworzonych wierszy
-                    for processed_row in processed_rows:
-                        if processed_row["position"] == position:
-                            processed_row["pauto_kw"] = pauto_value_kw
-                            processed_row["pauto_mw"] = pauto_value_mw
-                            break
-                    
-                    position += 1
+                    # Punkty danych PAUTO
+                    for position, (i, row) in enumerate(data.iterrows(), start=1):
+                        point = ET.SubElement(pauto_period, "Point")
+                        ET.SubElement(point, "position").text = str(position)
+                        
+                        # Konwersja z kW na MW
+                        pauto_value_kw = float(row.get('Nadwyżki (PAUTO)', 0) or 0)
+                        pauto_value_mw = pauto_value_kw / 1000.0  # kW -> MW
+                        
+                        # Format zgodny z przykładem
+                        pauto_formatted = f"{pauto_value_mw:.3f}"
+                        
+                        ET.SubElement(point, "quantity").text = pauto_formatted
+                        
+                        # Dodanie wartości PAUTO do przetworzonych wierszy
+                        if position <= len(processed_rows):
+                            processed_rows[position-1]["pauto_kw"] = pauto_value_kw
+                            processed_rows[position-1]["pauto_mw"] = pauto_value_mw
             
             # Aktualizacja danych przetworzonych
             processed_data["last_processed_date"] = datetime.now().isoformat()
@@ -1028,31 +1088,40 @@ class ExcelProcessor:
             with open(PROCESSED_DATA_PATH, 'w') as f:
                 json.dump(processed_data, f, indent=2)
             
-            # Konwersja do stringa z deklaracją XML
-            xml_str = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+            # Konwersja do stringa XML z deklaracją
+            xml_str = ET.tostring(root, encoding='unicode')
             
-            # Formatowanie XML do bardziej czytelnej postaci
-            parsed_xml = xml.dom.minidom.parseString(xml_str)
-            pretty_xml = parsed_xml.toprettyxml(indent="  ", encoding='utf-8').decode('utf-8')
+            # Dodanie deklaracji XML na początku
+            xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>\n'
+            formatted_xml = xml_declaration + xml_str
             
-            # Usunięcie pustych linii i dodanie komentarza zgodnego z dokumentacją
-            lines = [line for line in pretty_xml.split('\n') if line.strip()]
-            pretty_xml = '\n'.join(lines)
+            # Formatowanie XML dla lepszej czytelności
+            try:
+                parsed_xml = xml.dom.minidom.parseString(formatted_xml.encode('utf-8'))
+                pretty_xml = parsed_xml.toprettyxml(indent="\t", encoding='UTF-8').decode('utf-8')
+                
+                # Usunięcie pustych linii
+                lines = [line for line in pretty_xml.split('\n') if line.strip()]
+                formatted_xml = '\n'.join(lines)
+            except Exception as format_error:
+                logger.warning(f"Nie udało się sformatować XML: {format_error}, używam podstawowego formatu")
+                # Fallback do podstawowego formatowania
+                formatted_xml = xml_declaration + xml_str
             
-            logger.info(f"Wygenerowano XML dla planu SHORT/MWE zgodny z formatem PGB2")
+            logger.info(f"Wygenerowano XML dla planu SHORT/MWE zgodny z dokumentacją PGB2")
+            logger.info(f"Typ planu: A71 (plan generacji MWE)")
             logger.info(f"Okres: {schedule_start} - {schedule_end}")
             logger.info(f"Liczba punktów czasowych: {len(data)}")
             logger.info(f"MWE ID: {mwe_id}")
-            logger.info(f"PPLAN series ID: 1, PAUTO series ID: {2 if has_pauto_values else 'brak'}")
+            logger.info(f"Series: PPLAN (A01){', PAUTO (P01)' if 'Nadwyżki (PAUTO)' in data.columns and has_pauto_values else ''}")
             
-            return pretty_xml
+            return formatted_xml
             
         except Exception as e:
             error_msg = f"Błąd generowania XML: {str(e)}"
             logger.error(error_msg)
             error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "xml"})
             return None
-
 
 def prepare_chart_data(df, past_days=7, future_days=9):
     """
@@ -1221,7 +1290,7 @@ def generate_year_data(df, today):
         }
     
 def send_daily_report():
-    """Funkcja wysyłająca dzienny raport z lepszą obsługą błędów"""
+    """Funkcja wysyłająca dzienny raport z lepszą obsługą błędów i zgodną z dokumentacją PGB2"""
     logger.info("Rozpoczynanie wysyłania dziennego raportu...")
     
     try:
@@ -1261,6 +1330,17 @@ def send_daily_report():
         except Exception as e:
             logger.warning(f"Nie udało się zapisać XML do pliku: {e}")
         
+        # Walidacja XML przed wysłaniem (sprawdzenie struktury)
+        try:
+            ET.fromstring(xml_data.encode('utf-8'))
+            logger.info("XML przeszedł walidację struktury")
+        except ET.ParseError as e:
+            error_msg = f"XML nie przeszedł walidacji struktury: {e}"
+            logger.error(error_msg)
+            error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "report"})
+            processed_data["error_count"] += 1
+            return
+        
         # Inicjalizacja API i wysłanie planu
         api = PGB2API()
         
@@ -1271,6 +1351,7 @@ def send_daily_report():
             processed_data["error_count"] += 1
             return
         
+        # Wysłanie planu zgodnie z dokumentacją: POST /plan-api/files/SHORT/MWE
         success, result = api.send_plan("SHORT", "MWE", xml_data)
         if not success:
             error_msg = f"Wysyłanie planu nie powiodło się: {result}"
@@ -1296,14 +1377,14 @@ def send_daily_report():
             "timestamp": datetime.now().isoformat(),
             "uuid": file_uuid,
             "type": "SHORT/MWE",
-            "status": "Wysłany"
+            "status": "PENDING"
         })
         
-        # Monitoring statusu przetwarzania z lepszą obsługą
+        # Monitoring statusu przetwarzania zgodnie z dokumentacją
         import time
-        max_tries = 12  # Zwiększono liczbę prób
+        max_tries = 20  # Zwiększono liczbę prób dla lepszego monitoringu
         tries = 0
-        check_interval = 10  # Sprawdzaj co 10 sekund
+        check_interval = 15  # Sprawdzaj co 15 sekund
         
         logger.info(f"Rozpoczynanie monitorowania statusu pliku {file_uuid}")
         
@@ -1329,6 +1410,14 @@ def send_daily_report():
                 logger.info("Plan został przetworzony pomyślnie!")
                 processed_data["success_count"] += 1
                 
+                # Pobranie szczegółów sukcesu
+                try:
+                    plan_details = api.get_plan_details(file_uuid)
+                    if plan_details:
+                        logger.info(f"Szczegóły przetwarzania: {plan_details}")
+                except Exception as e:
+                    logger.warning(f"Nie udało się pobrać szczegółów sukcesu: {e}")
+                
                 # Zapisanie danych przetworzonych
                 with open(PROCESSED_DATA_PATH, 'w') as f:
                     json.dump(processed_data, f, indent=2)
@@ -1340,11 +1429,16 @@ def send_daily_report():
                 error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "report"})
                 processed_data["error_count"] += 1
                 
-                # Spróbuj pobrać szczegóły błędu
+                # Spróbuj pobrać szczegóły błędu zgodnie z dokumentacją
                 try:
                     plan_details = api.get_plan_details(file_uuid)
                     if plan_details:
                         logger.error(f"Szczegóły błędu planu: {plan_details}")
+                        error_logs.append({
+                            "timestamp": datetime.now().isoformat(), 
+                            "message": f"Szczegóły błędu PGB2: {plan_details}", 
+                            "type": "report"
+                        })
                 except Exception as e:
                     logger.warning(f"Nie udało się pobrać szczegółów błędu: {e}")
                 
@@ -1357,11 +1451,16 @@ def send_daily_report():
         
         if tries >= max_tries:
             logger.warning(f"Przekroczono maksymalną liczbę prób sprawdzania statusu dla {file_uuid}")
+            # Aktualizuj status na TIMEOUT
+            for report in sent_reports:
+                if report["uuid"] == file_uuid:
+                    report["status"] = "TIMEOUT"
+                    break
         
         logger.info("Zakończono wysyłanie dziennego raportu")
         
     except Exception as e:
-        error_msg = f"Błąd podczas wysyłania dziennego raportu: {str(e)}"
+        error_msg = f"Nieoczekiwany błąd podczas wysyłania dziennego raportu: {str(e)}"
         logger.error(error_msg)
         error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "report"})
         processed_data["error_count"] += 1
@@ -1372,7 +1471,6 @@ def send_daily_report():
                 json.dump(processed_data, f, indent=2)
         except Exception as save_error:
             logger.error(f"Nie udało się zapisać danych przetworzonych: {save_error}")
-
 
 # Inicjalizacja harmonogramu
 scheduler = BackgroundScheduler()
