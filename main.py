@@ -656,9 +656,14 @@ class ExcelProcessor:
             error_logs.append({"timestamp": datetime.now().isoformat(), "message": error_msg, "type": "excel"})
             return False
 
-    def validate_excel_data(self):
+        
+    def validate_excel_data(self, days_ahead=9):
         """
         Walidacja danych Excel przed generowaniem XML z uwzględnieniem konwersji kW->MW
+        Waliduje tylko dane na określoną liczbę dni do przodu (domyślnie 9 dni)
+        
+        Parametry:
+        days_ahead (int): Liczba dni do przodu do walidacji
         
         Zwraca:
         tuple: (bool, str) - (sukces, komunikat błędu)
@@ -666,76 +671,201 @@ class ExcelProcessor:
         if self.df is None:
             return False, "Brak wczytanych danych"
         
-        required_columns = ['DATA', 'Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)', 'Nadwyżki (PAUTO)']
+        # Wymagane kolumny - PAUTO jest opcjonalne, skupiamy się na PPLAN
+        required_columns = ['DATA', 'Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)']
         missing_columns = [col for col in required_columns if col not in self.df.columns]
         
         if missing_columns:
             return False, f"Brak wymaganych kolumn: {', '.join(missing_columns)}"
         
-        # Sprawdź czy są dane do przodu
+        # FILTROWANIE DANYCH NA OKREŚLONĄ LICZBĘ DNI (tak jak w get_forecast_data)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        future_data = self.df[self.df['DATA'] >= today]
+        end_date = today + timedelta(days=days_ahead)
         
-        if future_data.empty:
-            return False, "Brak danych prognozy na przyszłe dni"
+        # Filtrowanie danych od dzisiaj do X dni w przód - TO JEST KLUCZOWA ZMIANA
+        forecast_data = self.df[(self.df['DATA'] >= today) & (self.df['DATA'] <= end_date)].copy()
         
+        if forecast_data.empty:
+            return False, f"Brak danych prognozy na następne {days_ahead} dni (od {today.strftime('%Y-%m-%d')} do {end_date.strftime('%Y-%m-%d')})"
+        
+        # SPRAWDŹ KOLEJNOŚĆ DANYCH PRZED NAPRAWĄ
+        logger.info(f"=== STRUKTURA DANYCH PRZED NAPRAWĄ ===")
+        logger.info(f"Liczba rekordów: {len(forecast_data)}")
+        if len(forecast_data) >= 3:
+            logger.info(f"Pierwsze 3 daty:")
+            for i in range(min(3, len(forecast_data))):
+                logger.info(f"  {i+1}. {forecast_data.iloc[i]['DATA']}")
+        
+        # Sprawdź czy dane są już posortowane
+        is_sorted = forecast_data['DATA'].is_monotonic_increasing
+        logger.info(f"Czy dane są posortowane chronologicznie: {'✅ TAK' if is_sorted else '❌ NIE'}")
+        
+        if not is_sorted:
+            logger.warning("⚠️  DANE NIE SĄ POSORTOWANE - będą naprawione automatycznie")
+        
+        # Automatyczne naprawianie danych czasowych przed walidacją
+        logger.info("Próba automatycznego naprawienia danych przed walidacją...")
+        original_count = len(forecast_data)
+        forecast_data = self.fix_time_resolution(forecast_data)
+        
+        if len(forecast_data) != original_count:
+            logger.info(f"Naprawiono dane: {original_count} -> {len(forecast_data)} rekordów")
+        
+        # DIAGNOSTYKA STRUKTURY CZASOWEJ
+        logger.info(f"=== DIAGNOSTYKA DANYCH CZASOWYCH ===")
+        logger.info(f"Liczba rekordów do analizy: {len(forecast_data)}")
+        logger.info(f"Pierwszy rekord: {forecast_data['DATA'].iloc[0]}")
+        logger.info(f"Ostatni rekord: {forecast_data['DATA'].iloc[-1]}")
+        
+        # Sprawdź pokrycie czasowe
+        expected_records = days_ahead * 24  # 9 dni * 24 godziny = 216 rekordów
+        coverage_percent = (len(forecast_data) / expected_records) * 100
+        logger.info(f"Pokrycie czasowe: {len(forecast_data)}/{expected_records} rekordów ({coverage_percent:.1f}%)")
+        
+        if coverage_percent < 50:
+            logger.warning(f"⚠️  Niskie pokrycie czasowe: {coverage_percent:.1f}%")
+        elif coverage_percent < 100:
+            logger.info(f"ℹ️  Częściowe pokrycie czasowe: {coverage_percent:.1f}% - dane mogą być niekompletne")
+        else:
+            logger.info(f"✅ Pełne pokrycie czasowe: {coverage_percent:.1f}%")
+        
+        # Sprawdź czy dane zaczynają się od dzisiaj czy od przyszłości
+        time_until_first = forecast_data['DATA'].iloc[0] - today
+        if time_until_first.total_seconds() > 3600:  # Więcej niż 1 godzina od dzisiaj
+            hours_ahead = time_until_first.total_seconds() / 3600
+            logger.info(f"ℹ️  Dane zaczynają się {hours_ahead:.1f}h od dzisiaj")
+        else:
+            logger.info(f"✅ Dane zaczynają się od dzisiaj/niedawno")
+        
+        # WALIDACJA TYLKO PRZEFILTROWANYCH DANYCH
         # Sprawdź format wartości liczbowych
-        numeric_columns = ['Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)', 'Nadwyżki (PAUTO)']
+        numeric_columns = ['Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)']
+        # Dodaj PAUTO tylko jeśli kolumna istnieje
+        if 'Nadwyżki (PAUTO)' in forecast_data.columns:
+            numeric_columns.append('Nadwyżki (PAUTO)')
+        
         for col in numeric_columns:
-            if not pd.api.types.is_numeric_dtype(self.df[col]):
+            if not pd.api.types.is_numeric_dtype(forecast_data[col]):
                 try:
+                    # Uwaga: modyfikujemy oryginalny DataFrame dla tej kolumny
                     self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
+                    forecast_data = self.df[(self.df['DATA'] >= today) & (self.df['DATA'] <= end_date)].copy()
+                    forecast_data = forecast_data.sort_values('DATA').reset_index(drop=True)
                 except:
                     return False, f"Nieprawidłowy format danych w kolumnie {col}"
         
         # Sprawdź czy wartości PPLAN nie są ujemne
-        if (self.df['Produkcja PV (PPLAN)'] < 0).any():
+        if (forecast_data['Produkcja PV (PPLAN)'] < 0).any():
             return False, "Wartości PPLAN nie mogą być ujemne"
         
-        # Sprawdź czy wartości PAUTO nie są ujemne
-        if (self.df['Nadwyżki (PAUTO)'] < 0).any():
-            return False, "Wartości PAUTO nie mogą być ujemne"
+        # Sprawdź PAUTO tylko jeśli kolumna istnieje
+        if 'Nadwyżki (PAUTO)' in forecast_data.columns:
+            if (forecast_data['Nadwyżki (PAUTO)'] < 0).any():
+                return False, "Wartości PAUTO nie mogą być ujemne"
         
         # Sprawdź zakres wartości w kW (przed konwersją na MW)
         # Maksymalnie 9999.999 MW = 9999999 kW
         max_value_kw = 9999999  # 9999.999 MW w kW
         
         # Sprawdź PPLAN
-        max_pplan = self.df['Produkcja PV (PPLAN)'].max()
+        max_pplan = forecast_data['Produkcja PV (PPLAN)'].max()
         if max_pplan > max_value_kw:
             return False, f"Wartość PPLAN {max_pplan} kW przekracza maksymalny dozwolony zakres (9999.999 MW = {max_value_kw} kW)"
         
-        # Sprawdź PAUTO
-        max_pauto = self.df['Nadwyżki (PAUTO)'].max()
-        if max_pauto > max_value_kw:
-            return False, f"Wartość PAUTO {max_pauto} kW przekracza maksymalny dozwolony zakres (9999.999 MW = {max_value_kw} kW)"
+        # Sprawdź PAUTO tylko jeśli kolumna istnieje
+        if 'Nadwyżki (PAUTO)' in forecast_data.columns:
+            max_pauto = forecast_data['Nadwyżki (PAUTO)'].max()
+            if max_pauto > max_value_kw:
+                return False, f"Wartość PAUTO {max_pauto} kW przekracza maksymalny dozwolony zakres (9999.999 MW = {max_value_kw} kW)"
+            
+            # Sprawdź czy PAUTO <= PPLAN (tylko jeśli kolumna PAUTO istnieje)
+            pauto_gt_pplan = forecast_data['Nadwyżki (PAUTO)'] > forecast_data['Produkcja PV (PPLAN)']
+            if pauto_gt_pplan.any():
+                problematic_rows = forecast_data[pauto_gt_pplan]
+                first_problem = problematic_rows.iloc[0]
+                return False, f"PAUTO ({first_problem['Nadwyżki (PAUTO)']}) nie może być większe od PPLAN ({first_problem['Produkcja PV (PPLAN)']}) - wiersz z datą {first_problem['DATA']}"
         
-        # Sprawdź czy PAUTO <= PPLAN (zgodnie z dokumentacją)
-        pauto_gt_pplan = self.df['Nadwyżki (PAUTO)'] > self.df['Produkcja PV (PPLAN)']
-        if pauto_gt_pplan.any():
-            problematic_rows = self.df[pauto_gt_pplan]
-            first_problem = problematic_rows.iloc[0]
-            return False, f"PAUTO ({first_problem['Nadwyżki (PAUTO)']}) nie może być większe od PPLAN ({first_problem['Produkcja PV (PPLAN)']}) - wiersz z datą {first_problem['DATA']}"
-        
-        # Sprawdź czy daty są w odpowiednim zakresie (max 30 dni do przodu)
-        max_future_date = today + timedelta(days=30)
-        future_data_beyond_limit = self.df[self.df['DATA'] > max_future_date]
-        if not future_data_beyond_limit.empty:
-            return False, f"Dane nie mogą wykraczać poza 30 dni od dzisiaj. Znaleziono dane do {future_data_beyond_limit['DATA'].max()}"
-        
-        # Sprawdź czy dane są w rozdzielczości godzinowej
-        if len(future_data) > 1:
-            time_diffs = future_data['DATA'].diff().dropna()
-            expected_diff = timedelta(hours=1)
-            if not all(time_diffs == expected_diff):
-                return False, "Dane muszą być w rozdzielczości godzinowej (odstępy 1 godzina)"
+        # ULEPSZONA WALIDACJA ROZDZIELCZOŚCI CZASOWEJ
+        if len(forecast_data) > 1:
+            time_diffs = forecast_data['DATA'].diff().dropna()
+            
+            # Konwertuj na sekundy dla lepszej analizy
+            time_diffs_seconds = time_diffs.dt.total_seconds()
+            
+            # Oczekiwana różnica: 1 godzina = 3600 sekund
+            expected_seconds = 3600
+            
+            # Zmniejszona tolerancja po automatycznym naprawianiu: +/- 1 minuta
+            tolerance_seconds = 60
+            
+            # Sprawdź które różnice są nieprawidłowe
+            invalid_diffs = time_diffs_seconds[
+                (time_diffs_seconds < expected_seconds - tolerance_seconds) |
+                (time_diffs_seconds > expected_seconds + tolerance_seconds)
+            ]
+            
+            if len(invalid_diffs) > 0:
+                logger.error(f"=== PROBLEMY Z ROZDZIELCZOŚCIĄ CZASOWĄ ===")
+                logger.error(f"Oczekiwana różnica: {expected_seconds} sekund (1 godzina)")
+                logger.error(f"Tolerancja: ±{tolerance_seconds} sekund (±1 minuta)")
+                logger.error(f"Liczba nieprawidłowych różnic: {len(invalid_diffs)}")
+                
+                # Pokaż pierwsze 5 problemów
+                for i, (idx, diff_seconds) in enumerate(invalid_diffs.head().items()):
+                    hours = diff_seconds / 3600
+                    current_time = forecast_data.loc[idx, 'DATA']
+                    prev_time = forecast_data.loc[idx-1, 'DATA']
+                    logger.error(f"Problem {i+1}: {prev_time} -> {current_time}, różnica: {hours:.3f}h ({diff_seconds:.0f}s)")
+                    
+                    if i >= 4:  # Pokaż maksymalnie 5 problemów
+                        break
+                
+                # Sprawdź czy są zduplikowane daty
+                duplicates = forecast_data['DATA'].duplicated()
+                if duplicates.any():
+                    logger.error(f"Znaleziono zduplikowane daty: {duplicates.sum()}")
+                    dup_dates = forecast_data[duplicates]['DATA'].head()
+                    for dup_date in dup_dates:
+                        logger.error(f"Duplikat: {dup_date}")
+                
+                # Sprawdź statystyki odstępów
+                logger.error(f"Statystyki odstępów czasowych (w godzinach):")
+                logger.error(f"- Minimum: {time_diffs_seconds.min()/3600:.3f}h")
+                logger.error(f"- Maksimum: {time_diffs_seconds.max()/3600:.3f}h")
+                logger.error(f"- Średnia: {time_diffs_seconds.mean()/3600:.3f}h")
+                logger.error(f"- Mediana: {time_diffs_seconds.median()/3600:.3f}h")
+                
+                return False, f"Dane nie są w prawidłowej rozdzielczości godzinowej nawet po automatycznym naprawieniu. Znaleziono {len(invalid_diffs)} nieprawidłowych odstępów czasowych. Sprawdź logi dla szczegółów."
+            else:
+                logger.info("✅ Rozdzielczość czasowa jest prawidłowa")
+            
+            # Sprawdź czy wszystkie godziny są pełne (minuty = 0)
+            non_hour_timestamps = forecast_data[forecast_data['DATA'].dt.minute != 0]
+            if len(non_hour_timestamps) > 0:
+                logger.warning(f"Znaleziono {len(non_hour_timestamps)} znaczników czasu z minutami różnymi od 0:")
+                for i, row in non_hour_timestamps.head().iterrows():
+                    logger.warning(f"- {row['DATA']}")
+                
+                # To jest ostrzeżenie, ale nie blokujemy walidacji
         
         logger.info(f"Walidacja danych przebiegła pomyślnie:")
-        logger.info(f"- Liczba rekordów: {len(self.df)}")
-        logger.info(f"- Dane prognozy od: {future_data['DATA'].min()}")
-        logger.info(f"- Dane prognozy do: {future_data['DATA'].max()}")
+        logger.info(f"- Okres walidacji: {days_ahead} dni od dzisiaj")
+        logger.info(f"- Zakres dat: {today.strftime('%Y-%m-%d')} do {end_date.strftime('%Y-%m-%d')}")
+        logger.info(f"- Liczba rekordów do walidacji: {len(forecast_data)}")
+        logger.info(f"- Pokrycie czasowe: {coverage_percent:.1f}%")
+        logger.info(f"- Dane prognozy od: {forecast_data['DATA'].min()}")
+        logger.info(f"- Dane prognozy do: {forecast_data['DATA'].max()}")
         logger.info(f"- Max PPLAN: {max_pplan} kW ({max_pplan/1000:.3f} MW)")
-        logger.info(f"- Max PAUTO: {max_pauto} kW ({max_pauto/1000:.3f} MW)")
+        
+        if 'Nadwyżki (PAUTO)' in forecast_data.columns:
+            max_pauto = forecast_data['Nadwyżki (PAUTO)'].max()
+            logger.info(f"- Max PAUTO: {max_pauto} kW ({max_pauto/1000:.3f} MW) [opcjonalne]")
+        else:
+            logger.info(f"- PAUTO: kolumna nie istnieje [zgodnie z formatem XML]")
+        
+        # Informacja o pokryciu
+        if coverage_percent < 100:
+            logger.info(f"ℹ️  Uwaga: Dane pokrywają {coverage_percent:.1f}% oczekiwanego okresu, ale to wystarczy do generowania raportu")
         
         return True, "Dane są poprawne"
 
@@ -908,22 +1038,6 @@ class ExcelProcessor:
             # Usunięcie pustych linii i dodanie komentarza zgodnego z dokumentacją
             lines = [line for line in pretty_xml.split('\n') if line.strip()]
             pretty_xml = '\n'.join(lines)
-            
-            # Dodanie komentarza na końcu z informacjami technicznymi (opcjonalnie)
-            comment = """
-<!-- 
-PowerWise - Automatyczny plan generacji MWE
-Wygenerowano: {}
-MWE ID: {}
-Liczba punktów czasowych: {}
-Jednostka: MAW (MW)
--->""".format(
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"), 
-                mwe_id, 
-                len(data)
-            )
-            
-            pretty_xml += comment
             
             logger.info(f"Wygenerowano XML dla planu SHORT/MWE zgodny z formatem PGB2")
             logger.info(f"Okres: {schedule_start} - {schedule_end}")
@@ -1120,8 +1234,8 @@ def send_daily_report():
             processed_data["error_count"] += 1
             return
         
-        # Walidacja danych
-        is_valid, validation_message = processor.validate_excel_data()
+        # Walidacja danych TYLKO na 9 dni do przodu (zgodnie z wymaganiami raportu)
+        is_valid, validation_message = processor.validate_excel_data(days_ahead=9)
         if not is_valid:
             error_msg = f"Walidacja danych nie powiodła się: {validation_message}"
             logger.error(error_msg)
@@ -1129,7 +1243,7 @@ def send_daily_report():
             processed_data["error_count"] += 1
             return
         
-        # Generowanie XML
+        # Generowanie XML (automatycznie pobiera dane na 9 dni przez get_forecast_data)
         xml_data = processor.generate_xml_for_mwe_short()
         if not xml_data:
             error_msg = "Nie udało się wygenerować XML"
