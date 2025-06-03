@@ -716,8 +716,7 @@ class ExcelProcessor:
     
     def validate_excel_data(self, days_ahead=9):
         """
-        Walidacja danych Excel przed generowaniem XML z uwzględnieniem konwersji kW->MW
-        Waliduje tylko dane na określoną liczbę dni do przodu (domyślnie 9 dni)
+        Walidacja danych Excel TYLKO z przyszłości przed generowaniem XML
         
         Parametry:
         days_ahead (int): Liczba dni do przodu do walidacji
@@ -735,15 +734,21 @@ class ExcelProcessor:
         if missing_columns:
             return False, f"Brak wymaganych kolumn: {', '.join(missing_columns)}"
         
-        # FILTROWANIE DANYCH NA OKREŚLONĄ LICZBĘ DNI (tak jak w get_forecast_data)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = today + timedelta(days=days_ahead)
+        # KLUCZOWA ZMIANA: Filtrowanie TYLKO danych z przyszłości
+        now = datetime.now()
+        next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        end_date = next_hour + timedelta(days=days_ahead)
         
-        # Filtrowanie danych od dzisiaj do X dni w przód - TO JEST KLUCZOWA ZMIANA
-        forecast_data = self.df[(self.df['DATA'] >= today) & (self.df['DATA'] <= end_date)].copy()
+        logger.info(f"=== WALIDACJA DANYCH Z PRZYSZŁOŚCI ===")
+        logger.info(f"Aktualna data/czas: {now}")
+        logger.info(f"Start walidacji (następna godzina): {next_hour}")
+        logger.info(f"Koniec walidacji: {end_date}")
+        
+        # Filtrowanie danych TYLKO z przyszłości
+        forecast_data = self.df[(self.df['DATA'] >= next_hour) & (self.df['DATA'] <= end_date)].copy()
         
         if forecast_data.empty:
-            return False, f"Brak danych prognozy na następne {days_ahead} dni (od {today.strftime('%Y-%m-%d')} do {end_date.strftime('%Y-%m-%d')})"
+            return False, f"Brak danych prognozy z przyszłości na następne {days_ahead} dni (od {next_hour.strftime('%Y-%m-%d %H:%M')} do {end_date.strftime('%Y-%m-%d %H:%M')})"
         
         # SPRAWDŹ KOLEJNOŚĆ DANYCH PRZED NAPRAWĄ
         logger.info(f"=== STRUKTURA DANYCH PRZED NAPRAWA ===")
@@ -774,27 +779,29 @@ class ExcelProcessor:
         logger.info(f"Pierwszy rekord: {forecast_data['DATA'].iloc[0]}")
         logger.info(f"Ostatni rekord: {forecast_data['DATA'].iloc[-1]}")
         
+        # Sprawdź czy pierwsza data jest rzeczywiście z przyszłości
+        first_date = forecast_data['DATA'].iloc[0]
+        if first_date < next_hour:
+            return False, f"Pierwsza data ({first_date}) jest z przeszłości. PGB2 wymaga danych tylko z przyszłości (od {next_hour})"
+        
         # Sprawdź pokrycie czasowe
         expected_records = days_ahead * 24  # 9 dni * 24 godziny = 216 rekordów
         coverage_percent = (len(forecast_data) / expected_records) * 100
         logger.info(f"Pokrycie czasowe: {len(forecast_data)}/{expected_records} rekordów ({coverage_percent:.1f}%)")
         
-        if coverage_percent < 50:
+        if coverage_percent < 30:  # Zmniejszony próg, bo dane z przyszłości mogą być ograniczone
             logger.warning(f"Niskie pokrycie czasowe: {coverage_percent:.1f}%")
         elif coverage_percent < 100:
             logger.info(f"Częściowe pokrycie czasowe: {coverage_percent:.1f}% - dane mogą być niekompletne")
         else:
             logger.info(f"Pełne pokrycie czasowe: {coverage_percent:.1f}%")
         
-        # Sprawdź czy dane zaczynają się od dzisiaj czy od przyszłości
-        time_until_first = forecast_data['DATA'].iloc[0] - today
-        if time_until_first.total_seconds() > 3600:  # Więcej niż 1 godzina od dzisiaj
-            hours_ahead = time_until_first.total_seconds() / 3600
-            logger.info(f"Dane zaczynają się {hours_ahead:.1f}h od dzisiaj")
-        else:
-            logger.info(f"Dane zaczynają się od dzisiaj/niedawno")
+        # Sprawdź odstęp od teraz
+        time_until_first = forecast_data['DATA'].iloc[0] - now
+        hours_ahead = time_until_first.total_seconds() / 3600
+        logger.info(f"Pierwsze dane są {hours_ahead:.1f}h od teraz")
         
-        # WALIDACJA TYLKO PRZEFILTROWANYCH DANYCH
+        # WALIDACJA TYLKO PRZEFILTROWANYCH DANYCH Z PRZYSZŁOŚCI
         # Sprawdź format wartości liczbowych
         numeric_columns = ['Zużycie', 'Produkcja PV [kW]', 'Bilans [kW]', 'Produkcja PV (PPLAN)']
         # Dodaj PAUTO tylko jeśli kolumna istnieje
@@ -806,7 +813,7 @@ class ExcelProcessor:
                 try:
                     # Uwaga: modyfikujemy oryginalny DataFrame dla tej kolumny
                     self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
-                    forecast_data = self.df[(self.df['DATA'] >= today) & (self.df['DATA'] <= end_date)].copy()
+                    forecast_data = self.df[(self.df['DATA'] >= next_hour) & (self.df['DATA'] <= end_date)].copy()
                     forecast_data = forecast_data.sort_values('DATA').reset_index(drop=True)
                 except:
                     return False, f"Nieprawidłowy format danych w kolumnie {col}"
@@ -877,21 +884,6 @@ class ExcelProcessor:
                     if i >= 4:  # Pokaż maksymalnie 5 problemów
                         break
                 
-                # Sprawdź czy są zduplikowane daty
-                duplicates = forecast_data['DATA'].duplicated()
-                if duplicates.any():
-                    logger.error(f"Znaleziono zduplikowane daty: {duplicates.sum()}")
-                    dup_dates = forecast_data[duplicates]['DATA'].head()
-                    for dup_date in dup_dates:
-                        logger.error(f"Duplikat: {dup_date}")
-                
-                # Sprawdź statystyki odstępów
-                logger.error(f"Statystyki odstępów czasowych (w godzinach):")
-                logger.error(f"- Minimum: {time_diffs_seconds.min()/3600:.3f}h")
-                logger.error(f"- Maksimum: {time_diffs_seconds.max()/3600:.3f}h")
-                logger.error(f"- Średnia: {time_diffs_seconds.mean()/3600:.3f}h")
-                logger.error(f"- Mediana: {time_diffs_seconds.median()/3600:.3f}h")
-                
                 return False, f"Dane nie są w prawidłowej rozdzielczości godzinowej nawet po automatycznym naprawieniu. Znaleziono {len(invalid_diffs)} nieprawidłowych odstępów czasowych. Sprawdź logi dla szczegółów."
             else:
                 logger.info("Rozdzielczość czasowa jest prawidłowa")
@@ -902,17 +894,16 @@ class ExcelProcessor:
                 logger.warning(f"Znaleziono {len(non_hour_timestamps)} znaczników czasu z minutami różnymi od 0:")
                 for i, row in non_hour_timestamps.head().iterrows():
                     logger.warning(f"- {row['DATA']}")
-                
-                # To jest ostrzeżenie, ale nie blokujemy walidacji
         
-        logger.info(f"Walidacja danych przebiegła pomyślnie:")
-        logger.info(f"- Okres walidacji: {days_ahead} dni od dzisiaj")
-        logger.info(f"- Zakres dat: {today.strftime('%Y-%m-%d')} do {end_date.strftime('%Y-%m-%d')}")
+        logger.info(f"Walidacja danych z przyszłości przebiegła pomyślnie:")
+        logger.info(f"- Okres walidacji: {days_ahead} dni od następnej godziny")
+        logger.info(f"- Zakres dat: {next_hour.strftime('%Y-%m-%d %H:%M')} do {end_date.strftime('%Y-%m-%d %H:%M')}")
         logger.info(f"- Liczba rekordów do walidacji: {len(forecast_data)}")
         logger.info(f"- Pokrycie czasowe: {coverage_percent:.1f}%")
         logger.info(f"- Dane prognozy od: {forecast_data['DATA'].min()}")
         logger.info(f"- Dane prognozy do: {forecast_data['DATA'].max()}")
         logger.info(f"- Max PPLAN: {max_pplan} kW ({max_pplan/1000:.3f} MW)")
+        logger.info(f"- Pierwsze dane za: {hours_ahead:.1f}h od teraz")
         
         if 'Nadwyżki (PAUTO)' in forecast_data.columns:
             max_pauto = forecast_data['Nadwyżki (PAUTO)'].max()
@@ -924,32 +915,56 @@ class ExcelProcessor:
         if coverage_percent < 100:
             logger.info(f"Uwaga: Dane pokrywają {coverage_percent:.1f}% oczekiwanego okresu, ale to wystarczy do generowania raportu")
         
-        return True, "Dane są poprawne"
+        return True, "Dane z przyszłości są poprawne"
 
     def get_forecast_data(self, days_ahead=9):
         """
-        Pobieranie danych prognozy na określoną liczbę dni do przodu
+        Pobieranie danych prognozy TYLKO z przyszłości (od następnej godziny)
         
         Parametry:
         days_ahead (int): Liczba dni do przodu
         
         Zwraca:
-        DataFrame: Dane prognozy
+        DataFrame: Dane prognozy tylko z przyszłości
         """
         if self.df is None:
             if not self.load_data():
                 return None
         
-        # Filtrowanie danych tylko na przyszłe dni (do 9 dni do przodu)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = today + timedelta(days=days_ahead)
+        # Aktualna data i czas
+        now = datetime.now()
         
-        # Założenie: kolumna z datą nazywa się 'DATA'
-        # Filtrowanie danych od dzisiaj do X dni w przód
-        future_data = self.df[(self.df['DATA'] >= today) & (self.df['DATA'] <= end_date)]
+        # Następna pełna godzina (to jest start dla PGB2)
+        next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        
+        # Koniec okresu - days_ahead dni od następnej godziny
+        end_date = next_hour + timedelta(days=days_ahead)
+        
+        logger.info(f"Filtrowanie danych prognozy:")
+        logger.info(f"- Aktualna data/czas: {now}")
+        logger.info(f"- Start danych (następna godzina): {next_hour}")
+        logger.info(f"- Koniec danych: {end_date}")
+        
+        # Filtrowanie danych TYLKO z przyszłości (od następnej godziny)
+        future_data = self.df[(self.df['DATA'] >= next_hour) & (self.df['DATA'] <= end_date)].copy()
         
         if future_data.empty:
-            logger.warning(f"Brak danych prognozy na następnych {days_ahead} dni")
+            logger.warning(f"Brak danych prognozy z przyszłości na następnych {days_ahead} dni")
+            logger.warning(f"Sprawdź czy dane zawierają rekordy od {next_hour} do {end_date}")
+            
+            # Diagnostyka - pokaż dostępne dane
+            if not self.df.empty:
+                logger.info(f"Dostępny zakres dat w pliku: {self.df['DATA'].min()} do {self.df['DATA'].max()}")
+                # Pokaż najbliższe dane do next_hour
+                closest_future = self.df[self.df['DATA'] >= next_hour].head(3)
+                if not closest_future.empty:
+                    logger.info("Najbliższe przyszłe dane:")
+                    for _, row in closest_future.iterrows():
+                        logger.info(f"  - {row['DATA']}")
+        else:
+            logger.info(f"Znaleziono {len(future_data)} rekordów danych z przyszłości")
+            logger.info(f"Pierwszy rekord: {future_data['DATA'].min()}")
+            logger.info(f"Ostatni rekord: {future_data['DATA'].max()}")
             
         return future_data
 
