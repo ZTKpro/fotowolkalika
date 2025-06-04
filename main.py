@@ -51,6 +51,9 @@ templates = Jinja2Templates(directory="templates")
 # Plik z danymi Excel
 EXCEL_PATH = os.getenv("EXCEL_PATH", "SOGL-baza-raport-TAURON.xlsx")
 
+PMAXLIM_VALUE = float(os.getenv("PMAXLIM_VALUE", "0.4670"))  # MW - maksymalny limit mocy
+PMINLIM_VALUE = float(os.getenv("PMINLIM_VALUE", "0.0"))     # MW - minimalny limit mocy
+
 # Historia wysłanych raportów
 sent_reports = []
 
@@ -971,7 +974,7 @@ class ExcelProcessor:
     def generate_xml_for_mwe_short(self, data=None):
         """
         Generuje XML dla planu krótkoterminowego MWE zgodny z formatem PGB2
-        Zgodnie z dokumentacją API PGB2 i przykładem XML
+        Zawiera PPLAN, PAUTO, PMAXLIM i PMINLIM zgodnie z wymaganiami API
         
         Parametry:
         data (DataFrame): Opcjonalnie dataframe z danymi do przetworzenia
@@ -1000,7 +1003,6 @@ class ExcelProcessor:
             max_date = data['DATA'].max()
             
             # Konwersja na UTC - dokumentacja wymaga formatu UTC: YYYY-MM-DDTHH:MMZ
-            # Zakładamy, że dane są w czasie lokalnym
             schedule_start = min_date.strftime("%Y-%m-%dT%H:00Z")
             schedule_end = (max_date + timedelta(hours=1)).strftime("%Y-%m-%dT%H:00Z")
             
@@ -1020,8 +1022,6 @@ class ExcelProcessor:
             
             # PPLAN Series - businessType A01 zgodnie z dokumentacją
             pplan_series = ET.SubElement(root, "PlannedResource_TimeSeries")
-            
-            # mRID dla PPLAN - używamy MWE ID zgodnie z przykładem
             ET.SubElement(pplan_series, "mRID").text = mwe_id
             ET.SubElement(pplan_series, "businessType").text = "A01"  # A01 = generacja planowana (PPLAN)
             ET.SubElement(pplan_series, "measurement_Unit.name").text = "MAW"  # MAW = megawaty aktywne
@@ -1062,8 +1062,6 @@ class ExcelProcessor:
                 
                 if has_pauto_values:
                     pauto_series = ET.SubElement(root, "PlannedResource_TimeSeries")
-                    
-                    # mRID dla PAUTO - taki sam jak MWE ID zgodnie z dokumentacją
                     ET.SubElement(pauto_series, "mRID").text = mwe_id
                     ET.SubElement(pauto_series, "businessType").text = "P01"  # P01 = automatyczna generacja (PAUTO)
                     ET.SubElement(pauto_series, "measurement_Unit.name").text = "MAW"  # MAW = megawaty aktywne
@@ -1094,6 +1092,54 @@ class ExcelProcessor:
                         if position <= len(processed_rows):
                             processed_rows[position-1]["pauto_kw"] = pauto_value_kw
                             processed_rows[position-1]["pauto_mw"] = pauto_value_mw
+            
+            # PMAXLIM Series - businessType A_60 (maksymalny limit mocy)
+            pmaxlim_series = ET.SubElement(root, "PlannedResource_TimeSeries")
+            ET.SubElement(pmaxlim_series, "mRID").text = mwe_id
+            ET.SubElement(pmaxlim_series, "businessType").text = "A_60"  # A_60 = maksymalny limit mocy
+            ET.SubElement(pmaxlim_series, "measurement_Unit.name").text = "MAW"
+            ET.SubElement(pmaxlim_series, "registeredResource.mRID").text = mwe_id
+            
+            # Okres czasowy dla PMAXLIM
+            pmaxlim_period = ET.SubElement(pmaxlim_series, "Series_Period")
+            pmaxlim_timeInterval = ET.SubElement(pmaxlim_period, "timeInterval")
+            ET.SubElement(pmaxlim_timeInterval, "start").text = schedule_start
+            ET.SubElement(pmaxlim_timeInterval, "end").text = schedule_end
+            ET.SubElement(pmaxlim_period, "resolution").text = "PT1H"
+            
+            # Punkty danych PMAXLIM (stała wartość dla wszystkich punktów)
+            for position, (i, row) in enumerate(data.iterrows(), start=1):
+                point = ET.SubElement(pmaxlim_period, "Point")
+                ET.SubElement(point, "position").text = str(position)
+                ET.SubElement(point, "quantity").text = f"{PMAXLIM_VALUE:.3f}"
+                
+                # Dodanie wartości PMAXLIM do przetworzonych wierszy
+                if position <= len(processed_rows):
+                    processed_rows[position-1]["pmaxlim_mw"] = PMAXLIM_VALUE
+            
+            # PMINLIM Series - businessType A_61 (minimalny limit mocy)
+            pminlim_series = ET.SubElement(root, "PlannedResource_TimeSeries")
+            ET.SubElement(pminlim_series, "mRID").text = mwe_id
+            ET.SubElement(pminlim_series, "businessType").text = "A_61"  # A_61 = minimalny limit mocy
+            ET.SubElement(pminlim_series, "measurement_Unit.name").text = "MAW"
+            ET.SubElement(pminlim_series, "registeredResource.mRID").text = mwe_id
+            
+            # Okres czasowy dla PMINLIM
+            pminlim_period = ET.SubElement(pminlim_series, "Series_Period")
+            pminlim_timeInterval = ET.SubElement(pminlim_period, "timeInterval")
+            ET.SubElement(pminlim_timeInterval, "start").text = schedule_start
+            ET.SubElement(pminlim_timeInterval, "end").text = schedule_end
+            ET.SubElement(pminlim_period, "resolution").text = "PT1H"
+            
+            # Punkty danych PMINLIM (stała wartość dla wszystkich punktów)
+            for position, (i, row) in enumerate(data.iterrows(), start=1):
+                point = ET.SubElement(pminlim_period, "Point")
+                ET.SubElement(point, "position").text = str(position)
+                ET.SubElement(point, "quantity").text = f"{PMINLIM_VALUE:.3f}"
+                
+                # Dodanie wartości PMINLIM do przetworzonych wierszy
+                if position <= len(processed_rows):
+                    processed_rows[position-1]["pminlim_mw"] = PMINLIM_VALUE
             
             # Aktualizacja danych przetworzonych
             processed_data["last_processed_date"] = datetime.now().isoformat()
@@ -1128,7 +1174,9 @@ class ExcelProcessor:
             logger.info(f"Okres: {schedule_start} - {schedule_end}")
             logger.info(f"Liczba punktów czasowych: {len(data)}")
             logger.info(f"MWE ID: {mwe_id}")
-            logger.info(f"Series: PPLAN (A01){', PAUTO (P01)' if 'Nadwyżki (PAUTO)' in data.columns and has_pauto_values else ''}")
+            logger.info(f"PMAXLIM: {PMAXLIM_VALUE} MW (stała wartość)")
+            logger.info(f"PMINLIM: {PMINLIM_VALUE} MW (stała wartość)")
+            logger.info(f"Series: PPLAN (A01), PMAXLIM (A_60), PMINLIM (A_61){', PAUTO (P01)' if 'Nadwyżki (PAUTO)' in data.columns and has_pauto_values else ''}")
             
             return formatted_xml
             
