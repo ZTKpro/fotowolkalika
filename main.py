@@ -993,7 +993,7 @@ class ExcelProcessor:
             data = data.sort_values('DATA').reset_index(drop=True)
             
             # ID modułu wytwarzania energii (MWE) z env
-            mwe_id = os.getenv("MWE_ID", "_8eda81ec-90eb-46f9-abc8-7071ba98a5b1")
+            mwe_id = os.getenv("MWE_ID", "_d4bf64e9-ae21-4825-bc9a-2cced1ae6560")
             
             # Okres czasowy dla całego dokumentu w UTC
             min_date = data['DATA'].min()

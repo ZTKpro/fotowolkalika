@@ -51,7 +51,7 @@ Aplikacja webowa do automatycznego generowania i wysyłania raportów z pliku Ex
    PGB2_CLIENT_SECRET=twoj_client_secret
    PGB2_USERNAME=twoj_username
    PGB2_PASSWORD=twoje_haslo
-   MWE_ID=_8eda81ec-90eb-46f9-abc8-7071ba98a5b1
+   MWE_ID=_d4bf64e9-ae21-4825-bc9a-2cced1ae6560
    EXCEL_PATH=SOGLbazaraportTAURON.xlsx
    ```
 
